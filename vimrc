@@ -1,13 +1,21 @@
-" 设置光标为方框
-let &t_EI.="\e[1 q" "EI = NORMAL mode (ELSE)
-" 高亮当前行
-set cursorline
-" 切换界面自动保存
-set autowriteall
-" 自动加载
-set autoread
-" 停止光标闪烁
-set guicursor+=a:blinkon0
+set cursorline  " 高亮当前行
+set autowriteall  " 切换界面自动保存
+set autoread  " 自动加载
+set guicursor+=a:blinkon0  " 停止光标闪烁
+if &term =~ "xterm"  " 设置光标在不同模式下的形状
+    " INSERT mode
+    let &t_SI = "\<Esc>[6 q" . "\<Esc>]12"
+    " REPLACE mode
+    let &t_SR = "\<Esc>[3 q" . "\<Esc>]12"
+    " NORMAL mode
+    let &t_EI = "\<Esc>[2 q" . "\<Esc>]12"
+endif
+" set guicursor+=a:block
+set ts=4  " 将tab转为4个空格
+set expandtab
+" colorscheme molokai " 设置vim配色
+colorscheme gruvbox
+set background=dark
 
 " Comments in Vimscript start with a `"`.
 
@@ -85,13 +93,18 @@ call plug#begin('~/.vim/plugged')
 " Plug 'jiangmiao/auto-pairs'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
+" Plug 'godlygeek/tabular'  " markdown Plug
+Plug 'preservim/vim-markdown'  " markdown Plug
 call plug#end()
 
-"配置airline
+" 禁用markdown折叠功能
+set nofoldenable
+
+" 配置airline
 set laststatus=2  "永远显示状态栏
 let g:airline_powerline_fonts = 1  " 支持 powerline 字体
 let g:airline#extensions#tabline#enabled = 1 " 显示窗口tab和buffer
-let g:airline_theme='murmur'
+let g:airline_theme='gruvbox'
 
 if !exists('g:airline_symbols')
 let g:airline_symbols = {}
@@ -107,9 +120,6 @@ set smarttab
 set tabstop=4
 set shiftwidth=4
 
-"设置vim配色
-colorscheme molokai
-
 " Quickly Run
 map <F5> :call CompileRunGcc()<CR>
 func! CompileRunGcc()
@@ -118,32 +128,13 @@ func! CompileRunGcc()
         exec '!g++ -D _DEBUG % -o ./bin/%<'
         exec '!time ./bin/%<'
     elseif &filetype == 'cpp'
-        exec '!g++ -D _DEBUG -O2 % -o ./bin/%<'
+		#exec '!g++ -D _DEBUG -O2 -Wno-unused-result % -o ./bin/%<'
+		#exec '!g++ -D _DEBUG -O2 -Wl,-z,stack-size=536870912 -mcmodel=large -Wno-unused-result % -o ./bin/%<'
+		exec '!g++ -D _DEBUG -pthread -O2 -Wl,-z,stack-size=536870912 -mcmodel=large -Wno-unused-result % -o ./bin/%<'
         exec '!time ./bin/%<'
     elseif &filetype == 'python'
-        exec '!time python3.9 %'
+        exec '!time python3 %'
     elseif &filetype == 'sh'
         :!time bash %
     endif
 endfunc
-
-" coc.nvim的官方配置
-" Use tab for trigger completion with characters ahead and navigate.
-" NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
-" other plugin before putting this into your config.
-"inoremap <silent><expr> <TAB>
-"      \ pumvisible() ? "\<C-n>" :
-"      \ <SID>check_back_space() ? "\<TAB>" :
-"      \ coc#refresh()
-"inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
-
-" Make <CR> auto-select the first completion item and notify coc.nvim to
-" format on enter, <cr> could be remapped by other vim plugin
-"inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
-"                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
-
-" Use `[g` and `]g` to navigate diagnostics
-" Use `:CocDiagnostics` to get all diagnostics of current buffer in location list.
-"nmap <silent> [g <Plug>(coc-diagnostic-prev)
-"nmap <silent> ]g <Plug>(coc-diagnostic-next)
-

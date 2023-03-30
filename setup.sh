@@ -1,6 +1,9 @@
 #!/bin/bash
-for i in bashrc vimrc; do
-	rm ~/.$i
-	ln -s $(pwd)/$i ~/.$i
+for i in bashrc vimrc gitconfig gitignore_global gitignore oh-my-zsh zshrc vim; do
+	ln -sf $(pwd)/$i ~/.$i
 done
+
+rm ~/.tmux.conf
+ln -sf $(pwd)/.tmux/.tmux.conf ~/.tmux.conf
+cp $(pwd)/.tmux/.tmux.conf.local ~/.tmux.conf.local
 
