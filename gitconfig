@@ -2,6 +2,6 @@
 	email = wty-yy@github.com
 	name = wty-yy
 [credential]
-	helper = cache
+	helper = store
 [core]
 	editor = vim

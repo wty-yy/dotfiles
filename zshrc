@@ -2,6 +2,10 @@
 # 设置vi-mode模式
 # bindkey -v
 
+# setup nvm
+export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+
 # 解决 can't find libcudnn shared objects 问题
 # https://github.com/pytorch/pytorch/issues/85774
 alias fix_libcuda='
