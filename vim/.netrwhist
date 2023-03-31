@@ -1,5 +1,6 @@
 let g:netrw_dirhistmax  =10
-let g:netrw_dirhistcnt =7
+let g:netrw_dirhistcnt =8
+let g:netrw_dirhist_8='/home/wty-yy/dotfiles/oh-my-zsh/oh-my-zsh'
 let g:netrw_dirhist_7='/home/yy/blog/source/_posts/computer/CVPR'
 let g:netrw_dirhist_6='/home/yy/blog/source/_posts/computer/CVPR/CVPR_reviews.figure'
 let g:netrw_dirhist_5='/home/yy/blog/source/_posts/computer/CVPR'
@@ -9,4 +10,3 @@ let g:netrw_dirhist_2='/home/yy/blog/source/_posts/computer'
 let g:netrw_dirhist_1='/home/yy/blog/source/_posts/computer/3dGraphics'
 let g:netrw_dirhist_0='/home/yy/.vim'
 let g:netrw_dirhist_9='/home/yy/program/NLP/20_newsgroups/alt.atheism'
-let g:netrw_dirhist_8='/home/yy/program/NLP/mini_newsgroups/comp.os.ms-windows.misc'
