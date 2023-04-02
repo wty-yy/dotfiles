@@ -1,3 +1,4 @@
+set clipboard=unnamedplus
 set cursorline  " 高亮当前行
 set autowriteall  " 切换界面自动保存
 set autoread  " 自动加载

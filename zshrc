@@ -1,6 +1,21 @@
 # cd ~
 # 设置vi-mode模式
 # bindkey -v
+# LaTex
+export PATH=/usr/local/texlive/2021/bin/x86_64-linux:$PATH
+export PATH=/usr/local/texlive/2021/texmf-dist/scripts/latexindent:$PATH
+export MANPATH=/usr/local/texlive/2021/texmf-dist/doc/man:$MANPATH
+export INFOPATH=/usr/local/texlive/2021/texmf-dist/doc/info:$INFOPATH
+
+# WeChat
+# alias wechat=/opt/apps/com.qq.weixin.deepin/files/run.sh
+
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS="@im=fcitx"
+
+# clash
+# alias clash='/home/wty-yy/Programs/Clash\ for\ Windows-0.20.19-x64-linux/cfw'
 
 # setup nvm
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
@@ -23,19 +38,18 @@ sudo ldconfig
 
 
 # 博客的快捷键
-alias blog='~/blog'
-alias post='~/blog/source/_posts' # 进入文档文件夹
+alias blog='~/Documents/blog'
+alias post='~/Documents/blog/source/_posts' # 进入文档文件夹
 alias hexos='hexo clean && hexo s' # 在本地建立并运行
-alias fluid='~/blog/node_modules/hexo-theme-fluid' # 主题配置
-alias cpPost='cp -r ~/blog/source/_posts .' # 备份
+alias fluid='~/Documents/blog/node_modules/hexo-theme-fluid' # 主题配置
 # hexo g 建立blog
 # hexo d 上传到github
 
 alias out='vim out'
-alias cf='~/program/cf'
-alias py='~/program/py'
-alias poj='~/program/poj'
-alias homework='~/program/homework'
+alias cf='~/Programs/cf'
+alias py='~/Programs/py'
+alias poj='~/Programs/poj'
+alias homework='~/Programs/homework'
 # source "/home/yy/program/cf/run"
 
 if [ -d "$HOME/.local/bin" ] ; then
@@ -157,16 +171,18 @@ export EDITOR='vim'
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
+# 将miniforge base环境作为默认python
+export PATH="/home/wty-yy/Programs/miniforge3/bin:$PATH"
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/wty-yy/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+__conda_setup="$('/home/wty-yy/Programs/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__conda_setup"
 else
-    if [ -f "/home/wty-yy/miniforge3/etc/profile.d/conda.sh" ]; then
-        . "/home/wty-yy/miniforge3/etc/profile.d/conda.sh"
+    if [ -f "/home/wty-yy/Programs/miniforge3/etc/profile.d/conda.sh" ]; then
+        . "/home/wty-yy/Programs/miniforge3/etc/profile.d/conda.sh"
     else
-        export PATH="/home/wty-yy/miniforge3/bin:$PATH"
+        export PATH="/home/wty-yy/Programs/miniforge3/bin:$PATH"
     fi
 fi
 unset __conda_setup
