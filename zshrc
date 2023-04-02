@@ -10,13 +10,6 @@ export INFOPATH=/usr/local/texlive/2021/texmf-dist/doc/info:$INFOPATH
 # WeChat
 # alias wechat=/opt/apps/com.qq.weixin.deepin/files/run.sh
 
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
-export XMODIFIERS="@im=fcitx"
-
-# clash
-# alias clash='/home/wty-yy/Programs/Clash\ for\ Windows-0.20.19-x64-linux/cfw'
-
 # setup nvm
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
@@ -30,12 +23,6 @@ sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so
 sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so.1
 sudo ldconfig
 '
-# sudo rm /usr/lib/wsl/lib/libcuda.so.2
-# sudo rm /usr/lib/wsl/lib/libcuda.so
-# sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so
-# sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so.1
-# sudo ldconfig
-
 
 # 博客的快捷键
 alias blog='~/Documents/blog'
@@ -69,7 +56,7 @@ fi
 # export PATH=/home/yy/nodejs/bin:$PATH
 # Path to your oh-my-zsh installation.
 export TERM="xterm-256color"
-export ZSH="/home/wty-yy/.oh-my-zsh"
+export ZSH="$HOME/.oh-my-zsh"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -170,21 +157,3 @@ export EDITOR='vim'
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-# 将miniforge base环境作为默认python
-export PATH="/home/wty-yy/Programs/miniforge3/bin:$PATH"
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/wty-yy/Programs/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/home/wty-yy/Programs/miniforge3/etc/profile.d/conda.sh" ]; then
-        . "/home/wty-yy/Programs/miniforge3/etc/profile.d/conda.sh"
-    else
-        export PATH="/home/wty-yy/Programs/miniforge3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-
