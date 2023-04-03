@@ -1,11 +1,19 @@
 # cd ~
 # 设置vi-mode模式
 # bindkey -v
+
+# 修改zsh文件夹颜色 https://unix.stackexchange.com/questions/236724/changing-directory-color-with-zsh-prezto
+eval $(dircolors -p | sed -e 's/DIR 01;34/DIR 01;36/' | dircolors /dev/stdin)
+
 # LaTex
 export PATH=/usr/local/texlive/2021/bin/x86_64-linux:$PATH
 export PATH=/usr/local/texlive/2021/texmf-dist/scripts/latexindent:$PATH
 export MANPATH=/usr/local/texlive/2021/texmf-dist/doc/man:$MANPATH
 export INFOPATH=/usr/local/texlive/2021/texmf-dist/doc/info:$INFOPATH
+
+export XMODIFIERS="@im=fcitx"
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
 
 # WeChat
 # alias wechat=/opt/apps/com.qq.weixin.deepin/files/run.sh
