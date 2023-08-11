@@ -2,6 +2,14 @@
 
 ## Content
 
+Set zsh as default shell:
+
+```sh
+chsh -s $(which zsh)
+```
+
+log out computer and log back in. (https://askubuntu.com/questions/131823/how-to-make-zsh-the-default-shell)
+
 - `.tmux` config: https://github.com/gpakosz/.tmux
 
   ![.tmux](https://cloud.githubusercontent.com/assets/553208/19740585/85596a5a-9bbf-11e6-8aa1-7c8d9829c008.gif)
