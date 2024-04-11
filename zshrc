@@ -11,12 +11,17 @@ export PATH=/usr/local/texlive/2021/texmf-dist/scripts/latexindent:$PATH
 export MANPATH=/usr/local/texlive/2021/texmf-dist/doc/man:$MANPATH
 export INFOPATH=/usr/local/texlive/2021/texmf-dist/doc/info:$INFOPATH
 
-export XMODIFIERS="@im=fcitx"
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
+# Fcitx5
+# export XMODIFIERS="@im=fcitx"
+# export GTK_IM_MODULE=fcitx
+# export QT_IM_MODULE=fcitx
 
 # WeChat
 # alias wechat=/opt/apps/com.qq.weixin.deepin/files/run.sh
+
+# CUDA
+export PATH=/usr/local/cuda/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
 # setup nvm
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
@@ -31,6 +36,9 @@ sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so
 sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so.1
 sudo ldconfig
 '
+
+# Ubuntu24.04中gedit改名为gnome-text-editor
+alias gedit='gnome-text-editor'
 
 # 博客的快捷键
 alias blog='~/Documents/blog'
