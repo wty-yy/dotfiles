@@ -2,6 +2,9 @@
 # 设置vi-mode模式
 # bindkey -v
 
+# Isaac Sim
+export OMNI_KIT_ACCEPT_EULA=YES
+
 # 修改zsh文件夹颜色 https://unix.stackexchange.com/questions/236724/changing-directory-color-with-zsh-prezto
 eval $(dircolors -p | sed -e 's/DIR 01;34/DIR 01;36/' | dircolors /dev/stdin)
 
@@ -12,22 +15,22 @@ export MANPATH=/usr/local/texlive/2021/texmf-dist/doc/man:$MANPATH
 export INFOPATH=/usr/local/texlive/2021/texmf-dist/doc/info:$INFOPATH
 
 # Fcitx5
-# export XMODIFIERS="@im=fcitx"
-# export GTK_IM_MODULE=fcitx
-# export QT_IM_MODULE=fcitx
-
-# WeChat
-# alias wechat=/opt/apps/com.qq.weixin.deepin/files/run.sh
+export XMODIFIERS="@im=fcitx"
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
 
 # CUDA
-export PATH=/usr/local/cuda/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+# export PATH=/usr/local/cuda/bin:$PATH
+# export PATH=/usr/local/cuda/extras/CUPTI/lib64:$PATH
+# export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+# export LD_LIBRARY_PATH=/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+# export CUDA_HOME=/usr/local/cuda:$CUDA_HOME
 
 # setup nvm
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 
-# 解决 can't find libcudnn shared objects 问题
+# 解决WSL2中 can't find libcudnn shared objects 问题
 # https://github.com/pytorch/pytorch/issues/85774
 alias fix_libcuda='
 sudo rm /usr/lib/wsl/lib/libcuda.so.2
@@ -37,28 +40,30 @@ sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so.1
 sudo ldconfig
 '
 
+# Mujoco
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/yy/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+
 # Ubuntu24.04中gedit改名为gnome-text-editor
-alias gedit='gnome-text-editor'
+VERSION_ID=$(grep "VERSION_ID=" /etc/os-release | cut -d '"' -f 2)  # 获取当前系统版本号
+if [ "$VERSION_ID" = "24.04" ]; then
+    alias gedit='gnome-text-editor'
+fi
+
+# Coding
+alias katacr='~/Coding/GitHub/KataCR'
+alias github='~/Coding/GitHub'
 
 # 博客的快捷键
 alias blog='~/Documents/blog'
 alias post='~/Documents/blog/source/_posts' # 进入文档文件夹
 alias hexos='hexo clean && hexo s' # 在本地建立并运行
-alias fluid='~/Documents/blog/node_modules/hexo-theme-fluid' # 主题配置
 # hexo g 建立blog
 # hexo d 上传到github
 
-alias out='vim out'
-alias cf='~/Programs/cf'
-alias py='~/Programs/py'
-alias poj='~/Programs/poj'
-alias homework='~/Programs/homework'
-# source "/home/yy/program/cf/run"
-
-if [ -d "$HOME/.local/bin" ] ; then
+if [ -d "$HOME/.local/bin" ] ; then  # 将本地可执行文件加入到路径中
   PATH="$PATH:$HOME/.local/bin"
 fi
-
 
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
@@ -173,3 +178,23 @@ export EDITOR='vim'
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/home/yy/Programs/mambaforge/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/yy/Programs/mambaforge/etc/profile.d/conda.sh" ]; then
+        . "/home/yy/Programs/mambaforge/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/yy/Programs/mambaforge/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+
+if [ -f "/home/yy/Programs/mambaforge/etc/profile.d/mamba.sh" ]; then
+    . "/home/yy/Programs/mambaforge/etc/profile.d/mamba.sh"
+fi
+# <<< conda initialize <<<
+

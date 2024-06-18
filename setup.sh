@@ -1,6 +1,6 @@
 #!/bin/bash
 rm -rfd ~/.oh-my-zsh
-for i in bashrc vimrc gitconfig gitignore_global oh-my-zsh zshrc vim; do
+for i in vimrc gitconfig gitignore_global oh-my-zsh zshrc vim; do
 	ln -sf $(pwd)/$i ~/.$i
 done
 
