@@ -3,21 +3,21 @@
 # bindkey -v
 
 # Isaac Sim
-export OMNI_KIT_ACCEPT_EULA=YES
+# export OMNI_KIT_ACCEPT_EULA=YES
 
 # 修改zsh文件夹颜色 https://unix.stackexchange.com/questions/236724/changing-directory-color-with-zsh-prezto
 eval $(dircolors -p | sed -e 's/DIR 01;34/DIR 01;36/' | dircolors /dev/stdin)
 
 # LaTex
-export PATH=/usr/local/texlive/2021/bin/x86_64-linux:$PATH
-export PATH=/usr/local/texlive/2021/texmf-dist/scripts/latexindent:$PATH
-export MANPATH=/usr/local/texlive/2021/texmf-dist/doc/man:$MANPATH
-export INFOPATH=/usr/local/texlive/2021/texmf-dist/doc/info:$INFOPATH
+# export PATH=/usr/local/texlive/2021/bin/x86_64-linux:$PATH
+# export PATH=/usr/local/texlive/2021/texmf-dist/scripts/latexindent:$PATH
+# export MANPATH=/usr/local/texlive/2021/texmf-dist/doc/man:$MANPATH
+# export INFOPATH=/usr/local/texlive/2021/texmf-dist/doc/info:$INFOPATH
 
 # Fcitx5
-export XMODIFIERS="@im=fcitx"
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
+# export XMODIFIERS="@im=fcitx"
+# export GTK_IM_MODULE=fcitx
+# export QT_IM_MODULE=fcitx
 
 # CUDA
 # export PATH=/usr/local/cuda/bin:$PATH
@@ -32,17 +32,17 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 
 # 解决WSL2中 can't find libcudnn shared objects 问题
 # https://github.com/pytorch/pytorch/issues/85774
-alias fix_libcuda='
-sudo rm /usr/lib/wsl/lib/libcuda.so.2
-sudo rm /usr/lib/wsl/lib/libcuda.so
-sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so
-sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so.1
-sudo ldconfig
-'
+# alias fix_libcuda='
+# sudo rm /usr/lib/wsl/lib/libcuda.so.2
+# sudo rm /usr/lib/wsl/lib/libcuda.so
+# sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so
+# sudo ln -s /usr/lib/wsl/lib/libcuda.so.1.1 /usr/lib/wsl/lib/libcuda.so.1
+# sudo ldconfig
+# '
 
 # Mujoco
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/yy/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/yy/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
 # Ubuntu24.04中gedit改名为gnome-text-editor
 VERSION_ID=$(grep "VERSION_ID=" /etc/os-release | cut -d '"' -f 2)  # 获取当前系统版本号
@@ -52,10 +52,6 @@ fi
 
 # tmux 修复tmux utf8显示问题
 alias tmux='tmux -u'
-
-# Coding
-alias katacr='~/Coding/GitHub/KataCR'
-alias github='~/Coding/GitHub'
 
 # 博客的快捷键
 alias blog='~/Documents/blog'
@@ -197,23 +193,4 @@ function proxy_off(){
     unset https_proxy
     echo -e "已关闭代理"
 }
-
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/yy/Programs/mambaforge/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/home/yy/Programs/mambaforge/etc/profile.d/conda.sh" ]; then
-        . "/home/yy/Programs/mambaforge/etc/profile.d/conda.sh"
-    else
-        export PATH="/home/yy/Programs/mambaforge/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-
-if [ -f "/home/yy/Programs/mambaforge/etc/profile.d/mamba.sh" ]; then
-    . "/home/yy/Programs/mambaforge/etc/profile.d/mamba.sh"
-fi
-# <<< conda initialize <<<
 
