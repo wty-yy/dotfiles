@@ -50,6 +50,9 @@ if [ "$VERSION_ID" = "24.04" ]; then
     alias gedit='gnome-text-editor'
 fi
 
+# tmux 修复tmux utf8显示问题
+alias tmux='tmux -u'
+
 # Coding
 alias katacr='~/Coding/GitHub/KataCR'
 alias github='~/Coding/GitHub'
