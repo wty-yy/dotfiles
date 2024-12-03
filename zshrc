@@ -182,6 +182,22 @@ export EDITOR='vim'
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
+# 开启代理
+function proxy_on(){
+    export all_proxy=socks5://127.0.0.1:7891  # 将端口号 7891 填为上述 socks-port
+    export http_proxy=http://127.0.0.1:7890  # 将端口号 7890 填为上述 port
+    export https_proxy=http://127.0.0.1:7890  # 将端口号 7890 填为上述 port
+    echo -e "已开启代理"
+}
+
+# 关闭代理
+function proxy_off(){
+    unset all_proxy
+    unset http_proxy
+    unset https_proxy
+    echo -e "已关闭代理"
+}
+
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/home/yy/Programs/mambaforge/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
