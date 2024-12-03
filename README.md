@@ -8,7 +8,12 @@ Firstly, install relative packages.
 sudo apt install vim git zsh tmux wget curl
 ```
 
-Install oh-my-zsh [国内安装方法](https://juejin.cn/post/7023578642156355592):
+Use proxy, if need:
+```bash
+export https_proxy=http://127.0.0.1:7890  # change proxy id:port
+```
+
+Install oh-my-zsh:
 ```bash
 sudo apt install zsh
 # China
@@ -27,15 +32,15 @@ chmod 777 setup.sh
 sudo ./setup.sh
 ```
 
-Enjoy command: `vim`, `tmux`, `zsh`
-
-## Content
-
 Set zsh as default shell:
 
 ```sh
 chsh -s $(which zsh)
 ```
+
+Enjoy command: `vim`, `tmux`, `zsh`
+
+## Content
 
 log out computer and log back in. (https://askubuntu.com/questions/131823/how-to-make-zsh-the-default-shell)
 
