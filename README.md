@@ -8,7 +8,7 @@ Firstly, install relative packages.
 sudo apt install vim git zsh tmux wget curl
 ```
 
-Install oh-my-zsh [国内下载方法](https://juejin.cn/post/7023578642156355592):
+Install oh-my-zsh [国内安装方法](https://juejin.cn/post/7023578642156355592):
 ```bash
 sudo apt install zsh
 # China
