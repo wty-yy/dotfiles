@@ -1,5 +1,34 @@
 # My Dotfiles
 
+## Usage
+
+Firstly, install relative packages.
+
+```bash
+sudo apt install vim git zsh tmux
+```
+
+Install oh-my-zsh:
+```bash
+sudo apt install zsh
+# China
+sh -c "$(wget -O- https://gitee.com/mirrors/oh-my-zsh/raw/master/tools/install.sh)"
+# Others
+sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```
+
+Get into the directory, use `chmod` can change the highest access permissions, make `.sh` file can be run.
+
+```sh
+cd ~
+git clone https://github.com/wty-yy/dotfiles.git
+cd dotfiles
+chmod 777 setup.sh
+sudo ./setup.sh
+```
+
+Enjoy command: `vim`, `tmux`, `zsh`
+
 ## Content
 
 Set zsh as default shell:
@@ -26,13 +55,4 @@ log out computer and log back in. (https://askubuntu.com/questions/131823/how-to
 
 - `gitignore_global`: set global ignore files.
 
-## Usage
-
-Get into the directory, use `chmod` can change the highest access permissions, make `.sh` file can be run.
-
-```sh
-cd dotfiles
-chmod 777 setup.sh
-./setup.sh
-```
 
