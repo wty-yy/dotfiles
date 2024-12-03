@@ -5,7 +5,7 @@
 Firstly, install relative packages.
 
 ```bash
-sudo apt install vim git zsh tmux
+sudo apt install vim git zsh tmux wget curl
 ```
 
 Install oh-my-zsh:
