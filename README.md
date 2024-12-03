@@ -21,7 +21,7 @@ Get into the directory, use `chmod` can change the highest access permissions, m
 
 ```sh
 cd ~
-git clone https://github.com/wty-yy/dotfiles.git
+git clone --depth 1 https://github.com/wty-yy/dotfiles.git
 cd dotfiles
 chmod 777 setup.sh
 sudo ./setup.sh
