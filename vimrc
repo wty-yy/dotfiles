@@ -1,4 +1,5 @@
 " set clipboard=unnamedplus  " 将vim剪切板和系统剪切板进行共享
+set encoding=utf-8
 set cursorline  " 高亮当前行
 set autowriteall  " 切换界面自动保存
 set autoread  " 自动加载
