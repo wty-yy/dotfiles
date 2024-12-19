@@ -2,6 +2,15 @@
 # 设置vi-mode模式
 # bindkey -v
 
+# ROS 自启动
+# source /opt/ros/humble/setup.zsh
+# ROS2 使用zsh脚本所需修改配置 (保证tab可以弹出提示)
+eval "$(register-python-argcomplete3 ros2)"
+eval "$(register-python-argcomplete3 colcon)"
+
+# 修改zsh缓存文件位置
+export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
+
 # Isaac Sim
 # export OMNI_KIT_ACCEPT_EULA=YES
 
@@ -194,3 +203,23 @@ function proxy_off(){
     echo -e "已关闭代理"
 }
 
+# 清理缓存 (每次创建docker image使用)
+function cleanup_caches() {
+  paths=(
+    /var/lib/apt/lists/*
+    ~/.vscode-server
+    ~/.zcompdump*
+    ~/.bash_history
+    ~/.zsh_history
+    ~/.gazebo
+    ~/.ros
+    ~/.rviz2
+    ~/.sdformat
+    ~/.ignition
+  )
+
+  for path in "${paths[@]}"; do
+    rm -rf "$path"
+    echo "Removed $path"
+  done
+}
