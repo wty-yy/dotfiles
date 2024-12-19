@@ -206,7 +206,7 @@ function proxy_off(){
 # 清理缓存 (每次创建docker image使用)
 function cleanup_caches() {
   paths=(
-    /var/lib/apt/lists/*
+    "/var/lib/apt/lists/*"
     ~/.vscode-server
     ~/.zcompdump*
     ~/.bash_history
