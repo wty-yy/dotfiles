@@ -5,8 +5,9 @@
 # ROS 自启动
 # source /opt/ros/humble/setup.zsh
 # ROS2 使用zsh脚本所需修改配置 (保证tab可以弹出提示)
-eval "$(register-python-argcomplete3 ros2)"
-eval "$(register-python-argcomplete3 colcon)"
+# 参考这个 https://github.com/ros2/ros2cli/issues/534#issuecomment-988824521，修改如下文件
+# sudo vim /opt/ros/$ROS_DISTRO/share/rosidl_cli/environment/rosidl-argcomplete.zsh
+# 找到15行autoload -U +X compinit && compinit，将其注释掉即可
 
 # 修改zsh缓存文件位置
 export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
