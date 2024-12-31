@@ -71,7 +71,7 @@ alias hexos='hexo clean && hexo s' # 在本地建立并运行
 # hexo d 上传到github
 
 if [ -d "$HOME/.local/bin" ] ; then  # 将本地可执行文件加入到路径中
-  PATH="$PATH:$HOME/.local/bin"
+    export PATH=$HOME/.local/bin:$PATH
 fi
 
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
