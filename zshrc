@@ -2,16 +2,6 @@
 # 设置vi-mode模式
 # bindkey -v
 
-# ROS 自启动
-# source /opt/ros/humble/setup.zsh
-# ROS2 使用zsh脚本所需修改配置 (保证tab可以弹出提示)
-# 参考这个 https://github.com/ros2/ros2cli/issues/534#issuecomment-988824521，修改如下文件
-# sudo vim /opt/ros/$ROS_DISTRO/share/rosidl_cli/environment/rosidl-argcomplete.zsh
-# 找到15行autoload -U +X compinit && compinit，将其注释掉即可
-# 如果上述方法没有用, 还是要运行下面这两句话
-# eval "$(register-python-argcomplete3 ros2)"
-# eval "$(register-python-argcomplete3 colcon)"
-
 # 修改zsh缓存文件位置
 export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
 
@@ -227,3 +217,13 @@ function cleanup_caches() {
     echo "Removed $path"
   done
 }
+
+# ROS 自启动
+# source /opt/ros/humble/setup.zsh
+# ROS2 使用zsh脚本所需修改配置 (保证tab可以弹出提示)
+# 参考这个 https://github.com/ros2/ros2cli/issues/534#issuecomment-988824521，修改如下文件
+# sudo vim /opt/ros/$ROS_DISTRO/share/rosidl_cli/environment/rosidl-argcomplete.zsh
+# 找到15行autoload -U +X compinit && compinit，将其注释掉即可
+# 如果上述方法没有用, 还是要运行下面这两句话
+# eval "$(register-python-argcomplete3 ros2)"
+# eval "$(register-python-argcomplete3 colcon)"
