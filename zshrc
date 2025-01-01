@@ -8,6 +8,9 @@
 # 参考这个 https://github.com/ros2/ros2cli/issues/534#issuecomment-988824521，修改如下文件
 # sudo vim /opt/ros/$ROS_DISTRO/share/rosidl_cli/environment/rosidl-argcomplete.zsh
 # 找到15行autoload -U +X compinit && compinit，将其注释掉即可
+# 如果上述方法没有用, 还是要运行下面这两句话
+# eval "$(register-python-argcomplete3 ros2)"
+# eval "$(register-python-argcomplete3 colcon)"
 
 # 修改zsh缓存文件位置
 export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
