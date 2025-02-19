@@ -9,6 +9,7 @@ export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
 # export OMNI_KIT_ACCEPT_EULA=YES
 
 # 修改zsh文件夹颜色 https://unix.stackexchange.com/questions/236724/changing-directory-color-with-zsh-prezto
+export SHELL=/usr/bin/zsh  # 避免docker中没有SHELL环境变量报错
 eval $(dircolors -p | sed -e 's/DIR 01;34/DIR 01;36/' | dircolors /dev/stdin)
 
 # LaTex
