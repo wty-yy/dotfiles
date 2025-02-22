@@ -29,7 +29,8 @@ cd ~
 git clone --depth 1 https://github.com/wty-yy/dotfiles.git
 cd dotfiles
 chmod 777 setup.sh
-sudo ./setup.sh
+./setup.sh  # setup for now user
+sudo ./setup.sh  # setup for root user
 ```
 
 Set zsh as default shell:
