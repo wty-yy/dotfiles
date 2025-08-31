@@ -45,6 +45,7 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 # '
 
 # Mujoco
+export MUJOCO_GL=egl
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/yy/.mujoco/mujoco210/bin
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
