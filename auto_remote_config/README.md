@@ -6,9 +6,12 @@
 4. 根据当前屏幕个数自动配置x11vnc clip范围，完成启动x11vnc+noVNC服务的脚本，放在`${HOME}/.local/bin/`目录下，并添加执行权限，并加入开机自动启动systemd服务
 6. 输出每个屏幕的VNC访问地址和密码
 
-该程序进入时候需要通过命令行传入ZeroTier网络ID和VNC访问密码，例如：
+该程序进入时候需要通过命令行传入ZeroTier网络ID和VNC访问密码，并支持代理，例如：
 ```bash
-python3 auto_remote_config.py --zt_network_id <your_zerotier_network_id> --vnc_password <your_vnc_password>
+sudo python3 auto_remote_config.py \
+    --zt_network_id <your_id> \
+    --vnc_password <your_password> \
+    --proxy 127.0.0.1:7890
 ```
 程序需要root权限运行，因为需要安装软件包和配置服务，并输出当前执行到哪一步了，代码的全部注释都用英文，输出的文本也用英文，最后显示每个屏幕的VNC访问地址和密码。
 
@@ -64,4 +67,33 @@ echo "======================================================"
 
 # 挂起脚本，等待用户的 Ctrl+C 打断
 wait
+```
+
+Step1的方案如下
+```bash
+# 1. 创建专门用于官方 ZeroTier 的数据目录
+sudo mkdir -p /opt/zerotier-official
+
+# 2. 写入 local.conf 配置文件，修改默认端口为 9994
+sudo bash -c 'cat <<EOF > /opt/zerotier-official/local.conf
+{
+  "settings": {
+    "primaryPort": 9994
+  }
+}
+EOF'
+
+# 启动 Docker 容器
+sudo docker run -d \
+  --name zt-official \
+  --restart always \
+  --network host \
+  --cap-add NET_ADMIN \
+  --cap-add SYS_ADMIN \
+  --device /dev/net/tun \
+  -v /opt/zerotier-official:/var/lib/zerotier-one \
+  zerotier/zerotier:latest
+
+# 加入网络
+sudo docker exec zt-official zerotier-cli join <ID>
 ```

@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+Useage:
+sudo python3 auto_remote_config.py \
+    --zt_network_id <your_id> \
+    --vnc_password <your_password> \
+    --proxy 127.0.0.1:7890
+"""
 import os
 import sys
 import argparse
@@ -74,10 +81,21 @@ def main():
     # Made zt_network_id optional
     parser.add_argument("--zt_network_id", required=False, default="", help="Your ZeroTier Network ID (Leave empty to skip ZeroTier)")
     parser.add_argument("--vnc_password", required=True, help="Password for VNC access")
+    # Added proxy argument
+    parser.add_argument("--proxy", required=False, default="", help="Optional HTTP/HTTPS proxy (e.g., 127.0.0.1:7890) for apt, git, and curl")
     args = parser.parse_args()
 
     real_user, user_home = get_real_user()
     print(f"{Colors.INFO}[*] Detected target user: {real_user} (Home: {user_home}){Colors.RESET}")
+
+    # Set up global proxy environment variables if provided
+    if args.proxy:
+        proxy_url = args.proxy if "://" in args.proxy else f"http://{args.proxy}"
+        os.environ["http_proxy"] = proxy_url
+        os.environ["https_proxy"] = proxy_url
+        os.environ["HTTP_PROXY"] = proxy_url
+        os.environ["HTTPS_PROXY"] = proxy_url
+        print(f"{Colors.INFO}[*] Proxy configured for network requests: {proxy_url}{Colors.RESET}")
 
     # Step 1: Install ZeroTier and join network (Conditional)
     if args.zt_network_id:

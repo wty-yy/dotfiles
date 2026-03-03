@@ -208,3 +208,7 @@ function proxy_off(){
 # 如果上述方法没有用, 还是要运行下面这两句话
 # eval "$(register-python-argcomplete3 ros2)"
 # eval "$(register-python-argcomplete3 colcon)"
+
+# Activate conda
+# cd /path/to/mambaforge/bin
+# ./conda init zsh
