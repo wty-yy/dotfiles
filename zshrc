@@ -185,9 +185,11 @@ export EDITOR='vim'
 
 # 开启代理
 function proxy_on(){
-    export all_proxy=socks5://127.0.0.1:7891  # 将端口号 7891 填为上述 socks-port
-    export http_proxy=http://127.0.0.1:7890  # 将端口号 7890 填为上述 port
-    export https_proxy=http://127.0.0.1:7890  # 将端口号 7890 填为上述 port
+    export all_proxy=socks5://127.0.0.1:7890  # 将端口号 7890 填为上述 socks-port 或 mixed-port
+    export http_proxy=http://127.0.0.1:7890   # 将端口号 7890 填为上述 port 或 mixed-port
+    export HTTP_PROXY=http://127.0.0.1:7890
+    export https_proxy=http://127.0.0.1:7890
+    export HTTPS_PROXY=http://127.0.0.1:7890
     echo -e "已开启代理"
 }
 
@@ -195,7 +197,9 @@ function proxy_on(){
 function proxy_off(){
     unset all_proxy
     unset http_proxy
+    unset HTTP_PROXY
     unset https_proxy
+    unset HTTPS_PROXY
     echo -e "已关闭代理"
 }
 
