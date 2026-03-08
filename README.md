@@ -1,5 +1,10 @@
 # My Dotfiles
 
+## Update
+
+- 2026.3.8：更新[codex_vscode_extension_add_proxy](./scripts/codex_vscode_extension_add_proxy.sh)自动修改vscode extension中的codex，为其添加指定端口的proxy端口代理，支持`~/.vscode, ~/.vscode-server, ~/.vscode-server-container`三个文件夹下的自动修改
+- 2026.3.3：更新[auto_remote_config](./scripts/auto_remote_config/)能自动加入zerotier，打开sshd，安装可视化界面，从而在zerotier的局域网下可以直接通过ssh和noVNC控制本机
+
 ## Usage
 
 Firstly, install relative packages.
