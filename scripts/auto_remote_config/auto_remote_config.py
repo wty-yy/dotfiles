@@ -58,6 +58,13 @@ def run_cmd(cmd, env=None, check=True):
             sys.exit(1)
         return None
 
+def build_env_without_proxy(base_env=None):
+    """Return an environment copy with proxy variables removed."""
+    env = (base_env or os.environ).copy()
+    for key in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"]:
+        env.pop(key, None)
+    return env
+
 def check_root():
     """Ensure the script is run with root privileges."""
     if os.geteuid() != 0:
@@ -74,6 +81,47 @@ def get_real_user():
     user_info = pwd.getpwnam(sudo_user)
     return sudo_user, user_info.pw_dir
 
+def get_ipv4_addresses():
+    """Collect global IPv4 addresses for physical or Wi-Fi interfaces only."""
+    ip_out = run_cmd("ip -o -4 addr show up scope global", check=False)
+    if not ip_out:
+        return []
+
+    addresses = []
+    seen = set()
+    pattern = re.compile(r"^\d+:\s+([^ ]+)\s+inet\s+(\d+\.\d+\.\d+\.\d+)/")
+    for line in ip_out.split('\n'):
+        match = pattern.search(line)
+        if not match:
+            continue
+        iface = match.group(1)
+        ipv4 = match.group(2)
+        if not os.path.exists(f"/sys/class/net/{iface}/device"):
+            continue
+        key = (iface, ipv4)
+        if key in seen:
+            continue
+        seen.add(key)
+        addresses.append({"interface": iface, "ip": ipv4})
+    return addresses
+
+def is_package_installed(package_name):
+    """Check whether a Debian package is already installed."""
+    result = subprocess.run(
+        ["dpkg", "-s", package_name],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return result.returncode == 0
+
+def install_missing_packages(packages, apt_env):
+    """Install only packages that are not already installed."""
+    missing_packages = [package for package in packages if not is_package_installed(package)]
+    if not missing_packages:
+        print(f"{Colors.OUT}[*] Packages already installed: {' '.join(packages)}{Colors.RESET}")
+        return
+    run_cmd(f"apt-get install -y {' '.join(missing_packages)}", env=apt_env)
+
 def main():
     check_root()
     
@@ -82,7 +130,7 @@ def main():
     parser.add_argument("--zt_network_id", required=False, default="", help="Your ZeroTier Network ID (Leave empty to skip ZeroTier)")
     parser.add_argument("--vnc_password", required=True, help="Password for VNC access")
     # Added proxy argument
-    parser.add_argument("--proxy", required=False, default="", help="Optional HTTP/HTTPS proxy (e.g., 127.0.0.1:7890) for apt, git, and curl")
+    parser.add_argument("--proxy", required=False, default="", help="Optional HTTP/HTTPS proxy (e.g., 127.0.0.1:7890) for git and curl")
     args = parser.parse_args()
 
     real_user, user_home = get_real_user()
@@ -90,7 +138,10 @@ def main():
 
     # Set up global proxy environment variables if provided
     if args.proxy:
-        proxy_url = args.proxy if "://" in args.proxy else f"http://{args.proxy}"
+        proxy_value = args.proxy.strip()
+        if proxy_value.isdigit():
+            proxy_value = f"127.0.0.1:{proxy_value}"
+        proxy_url = proxy_value if "://" in proxy_value else f"http://{proxy_value}"
         os.environ["http_proxy"] = proxy_url
         os.environ["https_proxy"] = proxy_url
         os.environ["HTTP_PROXY"] = proxy_url
@@ -110,15 +161,21 @@ def main():
     else:
         print(f"\n{Colors.INFO}[Step 1] Skipping ZeroTier setup (No Network ID provided).{Colors.RESET}")
 
+    apt_env = build_env_without_proxy()
+
     # Step 2: Enable sshd service
     print(f"\n{Colors.INFO}[Step 2] Installing and enabling SSH service...{Colors.RESET}")
-    run_cmd("apt-get update && apt-get install -y openssh-server")
+    if is_package_installed("openssh-server"):
+        print(f"{Colors.OUT}[*] Package already installed: openssh-server{Colors.RESET}")
+    else:
+        run_cmd("apt-get update", env=apt_env)
+        install_missing_packages(["openssh-server"], apt_env)
     run_cmd("systemctl enable --now ssh")
     print(f"{Colors.SUCCESS}[+] SSH service enabled and started.{Colors.RESET}")
 
     # Step 3: Install x11vnc and set password
     print(f"\n{Colors.INFO}[Step 3] Installing x11vnc and setting up password...{Colors.RESET}")
-    run_cmd("apt-get install -y x11vnc")
+    install_missing_packages(["x11vnc"], apt_env)
     run_cmd(f"x11vnc -storepasswd {args.vnc_password} /etc/x11vnc.pass")
     run_cmd("chmod 644 /etc/x11vnc.pass")
     print(f"{Colors.SUCCESS}[+] x11vnc installed and password saved to /etc/x11vnc.pass.{Colors.RESET}")
@@ -127,18 +184,31 @@ def main():
     print(f"\n{Colors.INFO}[Step 4] Installing noVNC...{Colors.RESET}")
     novnc_dir = "/opt/noVNC"
     if not os.path.exists(novnc_dir):
-        run_cmd("apt-get install -y git websockify")
+        install_missing_packages(["git", "websockify"], apt_env)
         run_cmd(f"git clone https://github.com/novnc/noVNC.git {novnc_dir}")
     else:
         print(f"{Colors.OUT}[*] noVNC already cloned in /opt/noVNC.{Colors.RESET}")
     print(f"{Colors.SUCCESS}[+] noVNC ready.{Colors.RESET}")
 
-    # Step 5: Detect monitors using xrandr (Updated DISPLAY to :1, removed XAUTHORITY)
+    # Step 5: Detect monitors using xrandr
     print(f"\n{Colors.INFO}[Step 5] Detecting connected monitors...{Colors.RESET}")
     env = os.environ.copy()
-    env["DISPLAY"] = ":1" 
-    
-    xrandr_out = run_cmd("xrandr | grep -w connected", env=env, check=False)
+    env["DISPLAY"] = ":1"
+
+    xrandr_out = run_cmd(
+        f"sudo -u {real_user} DISPLAY=:1 xrandr | grep -w connected",
+        env=env,
+        check=False,
+    )
+    if not xrandr_out:
+        print(f"{Colors.INFO}[*] xrandr via {real_user} failed, trying to grant root X access...{Colors.RESET}")
+        run_cmd(
+            f"sudo -u {real_user} DISPLAY=:1 xhost +local:root",
+            env=env,
+            check=False,
+        )
+        xrandr_out = run_cmd("xrandr | grep -w connected", env=env, check=False)
+
     if not xrandr_out:
         print(f"{Colors.ERR}[ERROR] Failed to detect monitors. Is the GUI running and user logged in?{Colors.RESET}")
         sys.exit(1)
@@ -257,24 +327,21 @@ WantedBy=graphical.target
     # Step 8: Get Connection IP
     print(f"\n{Colors.INFO}[Step 8] Gathering connection info...{Colors.RESET}")
     
-    access_ip = "YOUR_SERVER_IP"
     if args.zt_network_id:
-        time.sleep(2) 
-        ip_out = run_cmd("ip -brief addr show | grep zt", check=False)
-        if ip_out:
-            match = re.search(r"(\d+\.\d+\.\d+\.\d+)", ip_out)
-            if match:
-                access_ip = match.group(1)
-    else:
-        # Try to grab the primary local IP if ZeroTier is skipped
-        ip_out = run_cmd("hostname -I", check=False)
-        if ip_out:
-            access_ip = ip_out.split()[0]
+        time.sleep(2)
+
+    access_addresses = get_ipv4_addresses()
+    primary_ip = access_addresses[0]["ip"] if access_addresses else "YOUR_SERVER_IP"
 
     print(f"\n{Colors.SUCCESS}" + "="*65)
     print("                 SETUP COMPLETED SUCCESSFULLY!                ")
     print("="*65)
-    print(f"Server IP Address   : {access_ip}")
+    if access_addresses:
+        print("Available IPv4 Addresses:")
+        for entry in access_addresses:
+            print(f"  - {entry['interface']:<12} {entry['ip']}")
+    else:
+        print(f"Server IP Address   : {primary_ip}")
     if args.zt_network_id:
         print("                      (Approve in ZeroTier Admin Panel if needed)")
     print(f"VNC Access Password : {args.vnc_password}")
@@ -282,7 +349,11 @@ WantedBy=graphical.target
     
     for i, m in enumerate(monitors):
         novnc_port = base_novnc_port + i
-        print(f"Screen {i+1} ({m['name']}) URL : http://{access_ip}:{novnc_port}/vnc.html")
+        if access_addresses:
+            for entry in access_addresses:
+                print(f"Screen {i+1} ({m['name']}) URL [{entry['interface']}] : http://{entry['ip']}:{novnc_port}/vnc.html")
+        else:
+            print(f"Screen {i+1} ({m['name']}) URL : http://{primary_ip}:{novnc_port}/vnc.html")
         
     print("-" * 65)
     print(f"{Colors.INFO}File Locations:{Colors.SUCCESS}")

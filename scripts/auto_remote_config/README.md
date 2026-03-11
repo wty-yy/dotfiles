@@ -1,20 +1,57 @@
-由Python实现，功能如下：
+## 介绍
+
+ZeroTier + noVNC自动屏幕转发安装程序，由Python实现，功能如下：
 1. 安装ZeroTier并加入指定网络
 2. 打开sshd服务
 3. 安装x11vnc并设置密码
 5. 安装noVNC并自动将每个屏幕的VNC服务转发到不同的端口
 4. 根据当前屏幕个数自动配置x11vnc clip范围，完成启动x11vnc+noVNC服务的脚本，放在`${HOME}/.local/bin/`目录下，并添加执行权限，并加入开机自动启动systemd服务
 6. 输出每个屏幕的VNC访问地址和密码
+7. 程序需要root权限运行，因为需要安装软件包和配置服务，并输出当前执行到哪一步了，代码的全部注释都用英文，输出的文本也用英文，最后显示每个屏幕的VNC访问地址和密码。
+
+## 安装步骤
+仅依赖Python3
+```bash
+sudo apt update
+sudo apt install -y python3
+```
 
 该程序进入时候需要通过命令行传入ZeroTier网络ID和VNC访问密码，并支持代理，例如：
 ```bash
 sudo python3 auto_remote_config.py \
     --zt_network_id <your_id> \
     --vnc_password <your_password> \
-    --proxy 127.0.0.1:7890
+    --proxy 7890
 ```
-程序需要root权限运行，因为需要安装软件包和配置服务，并输出当前执行到哪一步了，代码的全部注释都用英文，输出的文本也用英文，最后显示每个屏幕的VNC访问地址和密码。
 
+一个例子，仅设置VNC密码为1，使用默认端口7890的代理
+```bash
+sudo python3 auto_remote_config.py \
+    --vnc_password 1 \
+    --proxy 7890
+```
+
+## 使用方法
+
+安装完成后，程序直接给出访问连接，选择对应网卡的IP打开网页即可使用：
+
+网页访问 `<your_ip>:6080/vnc.html` 即可访问主屏幕，若包含副屏幕，则访问 `<your_ip>:6081/vnc.html` 来访问副屏幕，输入之前设置的VNC密码即可。
+
+程序默认创建了名为`multivnc.service`的systemd服务，并设置为开机自启。你可以通过以下命令来管理这个服务：
+```bash
+# 启动服务
+sudo systemctl start multivnc.service
+# 停止服务
+sudo systemctl stop multivnc.service
+# 查看服务状态
+sudo systemctl status multivnc.service
+# 重启服务
+sudo systemctl restart multivnc.service
+# 查看服务日志
+sudo journalctl -u multivnc.service -f
+```
+
+## Gemini 的 Prompt 如下
 step4方案：
 得到显示屏个数以及范围
 ```bash
