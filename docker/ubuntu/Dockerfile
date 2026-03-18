@@ -8,7 +8,9 @@ RUN apt-get update \
         ca-certificates \
         curl \
         git \
+        gosu \
         locales \
+        sudo \
         vim \
         zsh \
     && locale-gen en_US.UTF-8 \
@@ -24,10 +26,13 @@ COPY overlay/.p10k.zsh /tmp/dotfiles-docker/.p10k.zsh
 COPY overlay/.vimrc /tmp/dotfiles-docker/.vimrc
 COPY overlay/gruvbox.vim /tmp/dotfiles-docker/gruvbox.vim
 COPY overlay/setup-docker.sh /tmp/dotfiles-docker/setup-docker.sh
+COPY overlay/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /tmp/dotfiles-docker/setup-docker.sh \
     && /tmp/dotfiles-docker/setup-docker.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh \
     && rm -rf /tmp/dotfiles-docker
 
-WORKDIR /root
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+WORKDIR /home/user
 CMD ["/usr/bin/zsh"]
