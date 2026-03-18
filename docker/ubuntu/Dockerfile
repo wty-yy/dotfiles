@@ -1,4 +1,5 @@
-FROM ubuntu:24.04
+ARG UBUNTU_TAG=24.04
+FROM ubuntu:${UBUNTU_TAG}
 
 ENV DEBIAN_FRONTEND=noninteractive
 
