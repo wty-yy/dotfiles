@@ -23,7 +23,21 @@ docker build -t wtyyy/isaaclab:2.3.2.post1 .
 
 ```bash
 docker run -it --rm --gpus all --name ${USER}-isaaclab wtyyy/isaaclab:2.3.2.post1
+
+docker run -it --name ${USER} \
+    -e DISPLAY \
+    --gpus all \
+    -e NVIDIA_DRIVER_CAPABILITIES=all \
+    -e "__NV_PRIME_RENDER_OFFLOAD=1" \
+    -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
+    -v "/tmp/.X11-unix:/tmp/.X11-unix" \
+    -v /usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/nvidia_icd.json:ro \
+    -v /home/yy/Coding/robotics/go2_rl_robotlab:/home/user/go2_rl_robotlab \
+    --net=host \
+    wtyyy/isaaclab:2.3.2.post1 zsh
 ```
+
+可选`-v /path/to/Coding/:/home/user/Coding`挂载本地目录到容器
 
 镜像已经把虚拟环境加入 `PATH`，进入容器后默认就是 Isaac Lab 环境。
 

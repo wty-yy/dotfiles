@@ -2,8 +2,8 @@
 set -eu
 
 DEFAULT_USER="user"
-DEFAULT_UID="${DEFAULT_UID:-}"
-DEFAULT_GID="${DEFAULT_GID:-}"
+DEFAULT_UID="${DEFAULT_UID:-1000}"
+DEFAULT_GID="${DEFAULT_GID:-1000}"
 DEFAULT_HOME_BASE="${DEFAULT_HOME_BASE:-/home}"
 DEFAULT_HOME="${DEFAULT_HOME:-${DEFAULT_HOME_BASE}/${DEFAULT_USER}}"
 
@@ -96,9 +96,8 @@ sync_root_config() {
         fi
     done
 
-    # Avoid recursive chown over the full home directory at every startup.
-    # Large mounted workspaces or preinstalled environments would make
-    # container startup noticeably slow.
+    # Avoid recursive chown over the full home directory because the Isaac Lab
+    # virtualenv contains many files and would make every container startup slow.
     chown "${DEFAULT_UID}:${DEFAULT_GID}" "${DEFAULT_HOME}"
     for entry in .zshrc .p10k.zsh .tmux.conf .tmux.conf.local .vimrc; do
         if [ -e "${DEFAULT_HOME}/${entry}" ]; then
@@ -121,9 +120,6 @@ ensure_sudo_access() {
 select_workdir() {
     cd "${DEFAULT_HOME}"
 }
-
-DEFAULT_UID="${DEFAULT_UID:-1000}"
-DEFAULT_GID="${DEFAULT_GID:-1000}"
 
 TARGET_GROUP="$(ensure_group)"
 ensure_user

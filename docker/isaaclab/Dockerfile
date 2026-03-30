@@ -5,6 +5,7 @@ ARG DEFAULT_USER=user
 ARG DEFAULT_UID=1000
 ARG DEFAULT_GID=1000
 ARG DEFAULT_HOME=/home/user
+ARG PREPARED_HOME=/opt/isaaclab-home
 ARG UV_ENV_NAME=isaaclab
 ARG PYTHON_VERSION=3.11
 ARG TORCH_VERSION=2.7.0
@@ -17,7 +18,7 @@ ENV HOME=${DEFAULT_HOME}
 ENV PATH=${DEFAULT_HOME}/.local/bin:${DEFAULT_HOME}/${UV_ENV_NAME}/bin:${PATH}
 
 RUN set -eux; \
-    install -d -m 0755 "${DEFAULT_HOME}"
+    install -d -m 0755 "${PREPARED_HOME}"
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
@@ -33,9 +34,18 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends mesa-utils vulkan-tools x11-apps; \
     apt-get clean; \
-    rm -rf /var/lib/apt/lists/*; \
-    chown -R "${DEFAULT_UID}:${DEFAULT_GID}" "${DEFAULT_HOME}"
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    install -d -m 0755 "${DEFAULT_HOME}"; \
+    cp -a "${PREPARED_HOME}/." "${DEFAULT_HOME}/"; \
+    chown -R "${DEFAULT_UID}:${DEFAULT_GID}" "${DEFAULT_HOME}"; \
+    rm -rf "${PREPARED_HOME}"
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 USER root
 WORKDIR ${DEFAULT_HOME}
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["/usr/bin/zsh"]
