@@ -15,7 +15,7 @@ ARG ISAACLAB_VERSION=2.3.2.post1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV UV_LINK_MODE=copy
 ENV HOME=${DEFAULT_HOME}
-ENV PATH=${DEFAULT_HOME}/.local/bin:${DEFAULT_HOME}/${UV_ENV_NAME}/bin:${PATH}
+ENV PATH=${DEFAULT_HOME}/.local/bin:${PATH}
 
 RUN set -eux; \
     install -d -m 0755 "${PREPARED_HOME}"
@@ -41,6 +41,16 @@ RUN set -eux; \
     cp -a "${PREPARED_HOME}/." "${DEFAULT_HOME}/"; \
     chown -R "${DEFAULT_UID}:${DEFAULT_GID}" "${DEFAULT_HOME}"; \
     rm -rf "${PREPARED_HOME}"
+
+RUN set -eux; \
+    ACTIVATE_BLOCK_START="# >>> isaaclab auto-activate >>>"; \
+    ACTIVATE_BLOCK_END="# <<< isaaclab auto-activate <<<"; \
+    for zshrc in /root/.zshrc /etc/skel/.zshrc; do \
+        if ! grep -Fq "${ACTIVATE_BLOCK_START}" "${zshrc}"; then \
+            printf '\n%s\nif [ -f "%s/%s/bin/activate" ] && [ -z "${VIRTUAL_ENV:-}" ]; then\n  source "%s/%s/bin/activate"\nfi\n%s\n' \
+                "${ACTIVATE_BLOCK_START}" "${DEFAULT_HOME}" "${UV_ENV_NAME}" "${DEFAULT_HOME}" "${UV_ENV_NAME}" "${ACTIVATE_BLOCK_END}" >> "${zshrc}"; \
+        fi; \
+    done
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

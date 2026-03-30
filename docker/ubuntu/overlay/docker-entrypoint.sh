@@ -33,6 +33,30 @@ set_user_home() {
     usermod -d "${DEFAULT_HOME}" -m "${username}"
 }
 
+set_user_shell() {
+    username="$1"
+    current_shell="$(getent passwd "${username}" | cut -d: -f7)"
+
+    if [ "${current_shell}" = "/usr/bin/zsh" ]; then
+        return
+    fi
+
+    usermod -s /usr/bin/zsh "${username}"
+}
+
+set_user_primary_group() {
+    username="$1"
+    target_group="$2"
+    current_gid="$(id -g "${username}")"
+    target_gid="$(getent group "${target_group}" | cut -d: -f3)"
+
+    if [ "${current_gid}" = "${target_gid}" ]; then
+        return
+    fi
+
+    usermod -g "${target_group}" "${username}"
+}
+
 ensure_group() {
     if getent group "${DEFAULT_USER}" >/dev/null 2>&1; then
         existing_gid="$(getent group "${DEFAULT_USER}" | cut -d: -f3)"
@@ -64,7 +88,8 @@ ensure_user() {
             usermod -u "${DEFAULT_UID}" "${DEFAULT_USER}"
         fi
         set_user_home "${DEFAULT_USER}"
-        usermod -g "${TARGET_GROUP}" -s /usr/bin/zsh "${DEFAULT_USER}"
+        set_user_primary_group "${DEFAULT_USER}" "${TARGET_GROUP}"
+        set_user_shell "${DEFAULT_USER}"
         return
     fi
 
@@ -74,7 +99,8 @@ ensure_user() {
             usermod -l "${DEFAULT_USER}" "${uid_owner}"
         fi
         set_user_home "${DEFAULT_USER}"
-        usermod -g "${TARGET_GROUP}" -s /usr/bin/zsh "${DEFAULT_USER}"
+        set_user_primary_group "${DEFAULT_USER}" "${TARGET_GROUP}"
+        set_user_shell "${DEFAULT_USER}"
         return
     fi
 
