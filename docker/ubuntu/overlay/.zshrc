@@ -24,3 +24,22 @@ export EDITOR='vim'
 [[ -f "${HOME}/.p10k.zsh" ]] && source "${HOME}/.p10k.zsh"
 [[ -r "${HOME}/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && source "${HOME}/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
 [[ -r "${HOME}/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] && source "${HOME}/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+function proxy_on(){
+  MIXED_PORT=7890  # change port 7890 to mixed-port
+  export all_proxy=socks5://127.0.0.1:$MIXED_PORT
+  export http_proxy=http://127.0.0.1:$MIXED_PORT
+  export HTTP_PROXY=http://127.0.0.1:$MIXED_PORT
+  export https_proxy=http://127.0.0.1:$MIXED_PORT
+  export HTTPS_PROXY=http://127.0.0.1:$MIXED_PORT
+  echo -e "Proxy enabled on port $MIXED_PORT - ENV [all_proxy, http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY]"
+}
+
+function proxy_off(){
+  unset all_proxy
+  unset http_proxy
+  unset HTTP_PROXY
+  unset https_proxy
+  unset HTTPS_PROXY
+  echo -e "Proxy disabled - ENV [all_proxy, http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY]"
+}

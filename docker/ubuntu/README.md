@@ -16,10 +16,12 @@
 Minimal Ubuntu Docker image (supports `24.04` and `22.04`) with:
 
 - `zsh`
+- `tmux` with the repo's `.tmux` configuration
 - `powerlevel10k`
 - `zsh-autosuggestions`
 - `zsh-syntax-highlighting`
 - `vim` with `gruvbox`
+- timezone fixed to `Asia/Shanghai`
 
 This setup does not install `oh-my-zsh`. `powerlevel10k` is loaded directly from `.zshrc`.
 
@@ -69,9 +71,11 @@ docker run -it --rm \
 ## Included Behavior
 
 - Prompt theme is provided by `powerlevel10k`.
+- `tmux` ships with the same `.tmux.conf` and `.tmux.conf.local` used in the repo.
 - `gitstatusd` is downloaded during image build, so the first shell startup does not need to fetch it.
 - Directory color uses the same `dircolors` override as the main repo `zshrc`, with directories shown in cyan.
 - `vim` uses a minimal config with `gruvbox`, line numbers, relative numbers, cursorline, and 4-space indentation.
+- Container timezone is set to `Asia/Shanghai`.
 - Container startup creates a fixed `user` account, syncs the prepared shell/vim config from `/root` into `/home/user`, and then switches to that user.
 - The new user gets passwordless `sudo`, which is the closest practical equivalent to root privileges while keeping a normal user shell.
 
@@ -80,6 +84,8 @@ docker run -it --rm \
 - [Dockerfile](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/Dockerfile): image definition
 - [overlay/.zshrc](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.zshrc): shell config
 - [overlay/.p10k.zsh](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.p10k.zsh): p10k prompt config
+- [overlay/.tmux.conf](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.tmux.conf): tmux base config
+- [overlay/.tmux.conf.local](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.tmux.conf.local): tmux local overrides
 - [overlay/.vimrc](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.vimrc): minimal vim config
 - [overlay/gruvbox.vim](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/gruvbox.vim): vim colorscheme
 - [overlay/setup-docker.sh](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/setup-docker.sh): install script used during build

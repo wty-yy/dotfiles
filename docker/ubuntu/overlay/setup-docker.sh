@@ -48,12 +48,16 @@ clone_with_retry https://github.com/zsh-users/zsh-syntax-highlighting.git "${HOM
 
 install -m 0644 /tmp/dotfiles-docker/.zshrc "${HOME}/.zshrc"
 install -m 0644 /tmp/dotfiles-docker/.p10k.zsh "${HOME}/.p10k.zsh"
+install -m 0644 /tmp/dotfiles-docker/.tmux.conf "${HOME}/.tmux.conf"
+install -m 0644 /tmp/dotfiles-docker/.tmux.conf.local "${HOME}/.tmux.conf.local"
 install -d "${HOME}/.vim/colors"
 install -m 0644 /tmp/dotfiles-docker/.vimrc "${HOME}/.vimrc"
 install -m 0644 /tmp/dotfiles-docker/gruvbox.vim "${HOME}/.vim/colors/gruvbox.vim"
 install -d /etc/skel
 install -m 0644 /tmp/dotfiles-docker/.zshrc /etc/skel/.zshrc
 install -m 0644 /tmp/dotfiles-docker/.p10k.zsh /etc/skel/.p10k.zsh
+install -m 0644 /tmp/dotfiles-docker/.tmux.conf /etc/skel/.tmux.conf
+install -m 0644 /tmp/dotfiles-docker/.tmux.conf.local /etc/skel/.tmux.conf.local
 install -d /etc/skel/.vim/colors
 install -m 0644 /tmp/dotfiles-docker/.vimrc /etc/skel/.vimrc
 install -m 0644 /tmp/dotfiles-docker/gruvbox.vim /etc/skel/.vim/colors/gruvbox.vim

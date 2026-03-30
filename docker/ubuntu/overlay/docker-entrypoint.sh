@@ -90,7 +90,7 @@ ensure_user() {
 sync_root_config() {
     install -d -m 0755 "${DEFAULT_HOME}"
 
-    for entry in .zshrc .p10k.zsh .vimrc .powerlevel10k .zsh .vim; do
+    for entry in .zshrc .p10k.zsh .tmux.conf .tmux.conf.local .vimrc .powerlevel10k .zsh .vim; do
         if [ -e "/root/${entry}" ] && [ ! -e "${DEFAULT_HOME}/${entry}" ]; then
             cp -a "/root/${entry}" "${DEFAULT_HOME}/${entry}"
         fi

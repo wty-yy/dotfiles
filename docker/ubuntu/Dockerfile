@@ -2,6 +2,7 @@ ARG UBUNTU_TAG=24.04
 FROM ubuntu:${UBUNTU_TAG}
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -11,8 +12,12 @@ RUN apt-get update \
         gosu \
         locales \
         sudo \
+        tmux \
+        tzdata \
         vim \
         zsh \
+    && ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime \
+    && echo "${TZ}" > /etc/timezone \
     && locale-gen en_US.UTF-8 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -23,6 +28,8 @@ ENV SHELL=/usr/bin/zsh
 
 COPY overlay/.zshrc /tmp/dotfiles-docker/.zshrc
 COPY overlay/.p10k.zsh /tmp/dotfiles-docker/.p10k.zsh
+COPY overlay/.tmux.conf /tmp/dotfiles-docker/.tmux.conf
+COPY overlay/.tmux.conf.local /tmp/dotfiles-docker/.tmux.conf.local
 COPY overlay/.vimrc /tmp/dotfiles-docker/.vimrc
 COPY overlay/gruvbox.vim /tmp/dotfiles-docker/gruvbox.vim
 COPY overlay/setup-docker.sh /tmp/dotfiles-docker/setup-docker.sh

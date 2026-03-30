@@ -16,10 +16,12 @@
 这是一个支持 Ubuntu `24.04` 与 `22.04` 的精简 Docker 镜像，包含：
 
 - `zsh`
+- 带仓库 `.tmux` 配置的 `tmux`
 - `powerlevel10k`
 - `zsh-autosuggestions`
 - `zsh-syntax-highlighting`
 - 带 `gruvbox` 配色的 `vim`
+- 时区固定为 `Asia/Shanghai`
 
 这套配置没有安装 `oh-my-zsh`，而是直接在 `.zshrc` 中加载 `powerlevel10k`。
 
@@ -69,9 +71,11 @@ docker run -it --rm \
 ## 包含内容
 
 - 命令行提示符由 `powerlevel10k` 提供。
+- `tmux` 会直接使用仓库里的 `.tmux.conf` 和 `.tmux.conf.local`。
 - `gitstatusd` 会在镜像构建阶段下载好，因此首次进入 shell 时不需要再额外等待下载。
 - 目录颜色使用与仓库根目录 `zshrc` 相同的 `dircolors` 覆盖规则，目录显示为青色。
 - `vim` 使用一份最小配置，启用 `gruvbox`、行号、相对行号、当前行高亮和 4 空格缩进。
+- 容器时区固定为 `Asia/Shanghai`。
 - 容器启动时会创建固定的 `user` 用户，把 `/root` 下预先准备好的 shell/vim 配置同步到 `/home/user`，然后再切换过去。
 - 新用户会获得免密码 `sudo`，这是保留普通用户 shell 体验的同时最接近 root 权限的做法。
 
@@ -80,6 +84,8 @@ docker run -it --rm \
 - [Dockerfile](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/Dockerfile)：镜像定义
 - [overlay/.zshrc](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.zshrc)：shell 配置
 - [overlay/.p10k.zsh](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.p10k.zsh)：p10k 提示符配置
+- [overlay/.tmux.conf](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.tmux.conf)：tmux 基础配置
+- [overlay/.tmux.conf.local](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.tmux.conf.local)：tmux 本地覆盖配置
 - [overlay/.vimrc](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.vimrc)：最小 vim 配置
 - [overlay/gruvbox.vim](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/gruvbox.vim)：vim 配色文件
 - [overlay/setup-docker.sh](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/setup-docker.sh)：构建阶段执行的安装脚本
