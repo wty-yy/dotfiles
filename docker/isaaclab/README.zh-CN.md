@@ -38,20 +38,20 @@ mkdir -p ${HOME}/isaaclab_docker/.cache/ov
 mkdir -p ${HOME}/isaaclab_docker/.nvidia-omniverse
 
 docker run -it --name ${USER}-isaaclab \
-    -e DEFAULT_UID="$(id -u)" \
-    -e DEFAULT_GID="$(id -g)" \
-    -e DISPLAY \
-    --gpus all \
-    -e NVIDIA_DRIVER_CAPABILITIES=all \
-    -e "__NV_PRIME_RENDER_OFFLOAD=1" \
-    -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
-    -v "/tmp/.X11-unix:/tmp/.X11-unix" \
-    -v /usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/nvidia_icd.json:ro \
-    -v /path/to/Coding:/home/user/Coding \
-    -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
-    -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-    --net=host \
-    wtyyy/isaaclab:2.3.2.post1 zsh
+  -e DEFAULT_UID="$(id -u)" \
+  -e DEFAULT_GID="$(id -g)" \
+  -e DISPLAY \
+  --gpus all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  -e "__NV_PRIME_RENDER_OFFLOAD=1" \
+  -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
+  -v "/tmp/.X11-unix:/tmp/.X11-unix" \
+  -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
+  -v /path/to/Coding:/home/user/Coding \
+  -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
+  -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
+  --net=host \
+  wtyyy/isaaclab:2.3.2.post1 zsh
 ```
 
 说明：
@@ -64,7 +64,7 @@ docker run -it --name ${USER}-isaaclab \
 如果退出容器后再次进入，需要指定用户名称
 ```bash
 docker start ${USER}-isaaclab
-docker exec -it -u user ${USER}-isaaclab zsh
+docker exec -it ${USER}-isaaclab sudo -iu user zsh
 ```
 
 ## 目录结构

@@ -63,7 +63,7 @@ docker run -it --name ${USER}-ubuntu \
   -e "__NV_PRIME_RENDER_OFFLOAD=1" \
   -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
   -v "/tmp/.X11-unix:/tmp/.X11-unix" \
-  -v /usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/nvidia_icd.json:ro \
+  -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
   --net=host \
   wtyyy/ubuntu:24.04 zsh
 ```
@@ -73,7 +73,7 @@ docker run -it --name ${USER}-ubuntu \
 如果退出容器后再次进入，需要指定用户名称
 ```bash
 docker start ${USER}-ubuntu
-docker exec -it -u user ${USER}-ubuntu zsh
+docker exec -it ${USER}-ubuntu sudo -iu user zsh
 ```
 
 ## 包含内容

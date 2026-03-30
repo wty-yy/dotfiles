@@ -63,7 +63,7 @@ docker run -it --name ${USER}-ubuntu \
   -e "__NV_PRIME_RENDER_OFFLOAD=1" \
   -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
   -v "/tmp/.X11-unix:/tmp/.X11-unix" \
-  -v /usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/nvidia_icd.json:ro \
+  -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
   --net=host \
   wtyyy/ubuntu:24.04 zsh
 ```
@@ -74,7 +74,7 @@ If you exit the container and want to enter it again later, specify the user exp
 
 ```bash
 docker start ${USER}-ubuntu
-docker exec -it -u user ${USER}-ubuntu zsh
+docker exec -it ${USER}-ubuntu sudo -iu user zsh
 ```
 
 ## Included Behavior

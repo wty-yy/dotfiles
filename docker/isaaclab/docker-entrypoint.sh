@@ -195,4 +195,4 @@ select_workdir
 export HOME="${DEFAULT_HOME}"
 export USER="${DEFAULT_USER}"
 export LOGNAME="${DEFAULT_USER}"
-exec gosu "${DEFAULT_USER}:${TARGET_GROUP}" "$@"
+exec gosu "${DEFAULT_USER}" "$@"
