@@ -25,7 +25,29 @@ docker build -t wtyyy/isaaclab:2.3.2.post1 .
 docker run -it --rm --gpus all --name ${USER}-isaaclab wtyyy/isaaclab:2.3.2.post1
 ```
 
-The image keeps the virtualenv on `PATH`, so entering the container uses the Isaac Lab environment directly.
+Recommended for GUI usage with persistent Omniverse cache:
+
+```bash
+docker run -it --name isaaclab_${USER} \
+    -e DISPLAY \
+    --gpus all \
+    -e NVIDIA_DRIVER_CAPABILITIES=all \
+    -e "__NV_PRIME_RENDER_OFFLOAD=1" \
+    -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
+    -v "/tmp/.X11-unix:/tmp/.X11-unix" \
+    -v /usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/nvidia_icd.json:ro \
+    -v /path/to/Coding:/home/user/Coding \
+    -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
+    -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
+    --net=host \
+    wtyyy/isaaclab:2.3.2.post1 zsh
+```
+
+Notes:
+
+- Replace `/path/to/Coding` with your local workspace path.
+- Create `${HOME}/isaaclab_docker/.cache/ov` and `${HOME}/isaaclab_docker/.nvidia-omniverse` on the host first if you want persistent cache reuse.
+- Entering `zsh` auto-sources `/home/user/isaaclab/bin/activate`.
 
 ## Layout
 

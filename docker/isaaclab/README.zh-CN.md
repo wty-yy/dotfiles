@@ -23,8 +23,12 @@ docker build -t wtyyy/isaaclab:2.3.2.post1 .
 
 ```bash
 docker run -it --rm --gpus all --name ${USER}-isaaclab wtyyy/isaaclab:2.3.2.post1
+```
 
-docker run -it --name ${USER} \
+推荐在图形界面和缓存持久化场景下使用：
+
+```bash
+docker run -it --name isaaclab_${USER} \
     -e DISPLAY \
     --gpus all \
     -e NVIDIA_DRIVER_CAPABILITIES=all \
@@ -32,14 +36,18 @@ docker run -it --name ${USER} \
     -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
     -v "/tmp/.X11-unix:/tmp/.X11-unix" \
     -v /usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/nvidia_icd.json:ro \
-    -v /home/yy/Coding/robotics/go2_rl_robotlab:/home/user/go2_rl_robotlab \
+    -v /path/to/Coding:/home/user/Coding \
+    -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
+    -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
     --net=host \
     wtyyy/isaaclab:2.3.2.post1 zsh
 ```
 
-可选`-v /path/to/Coding/:/home/user/Coding`挂载本地目录到容器
+说明：
 
-镜像已经把虚拟环境加入 `PATH`，进入容器后默认就是 Isaac Lab 环境。
+- 把 `/path/to/Coding` 替换成你本地的工作目录。
+- 如果想复用缓存，建议先在宿主机创建 `${HOME}/isaaclab_docker/.cache/ov` 和 `${HOME}/isaaclab_docker/.nvidia-omniverse`。
+- 进入容器的 `zsh` 后会自动 `source /home/user/isaaclab/bin/activate`。
 
 ## 目录结构
 

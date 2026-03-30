@@ -26,7 +26,8 @@ RUN set -eux; \
     uv venv "${UV_ENV_NAME}" --python "${PYTHON_VERSION}" --seed; \
     . "${UV_ENV_NAME}/bin/activate"; \
     uv pip install -U "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url https://download.pytorch.org/whl/cu128; \
-    pip install "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" --extra-index-url https://pypi.nvidia.com
+    pip install --no-cache-dir "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" --extra-index-url https://pypi.nvidia.com; \
+    rm -rf "${HOME}/.cache/pip" "${HOME}/.cache/uv"
 
 RUN set -eux; \
     apt-get update; \
