@@ -7,6 +7,20 @@ fi
 
 export TERM=xterm-256color
 export SHELL=/usr/bin/zsh
+export HISTFILE="${HOME}/.zsh_history"
+export HISTSIZE=100000
+export SAVEHIST=100000
+
+setopt APPEND_HISTORY
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt EXTENDED_HISTORY
+
+if [ ! -e "${HISTFILE}" ]; then
+  touch "${HISTFILE}" 2>/dev/null || true
+fi
 
 if command -v dircolors >/dev/null 2>&1; then
   eval "$(dircolors -p | sed -e 's/DIR 01;34/DIR 01;36/' | dircolors /dev/stdin)"
@@ -22,6 +36,7 @@ export EDITOR='vim'
 
 [[ -r "${HOME}/.powerlevel10k/powerlevel10k.zsh-theme" ]] && source "${HOME}/.powerlevel10k/powerlevel10k.zsh-theme"
 [[ -f "${HOME}/.p10k.zsh" ]] && source "${HOME}/.p10k.zsh"
+[[ -r "${HOME}/.zsh/zsh-vi-mode/zsh-vi-mode.plugin.zsh" ]] && source "${HOME}/.zsh/zsh-vi-mode/zsh-vi-mode.plugin.zsh"
 [[ -r "${HOME}/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && source "${HOME}/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
 [[ -r "${HOME}/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] && source "${HOME}/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 

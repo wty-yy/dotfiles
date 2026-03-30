@@ -45,11 +45,13 @@ run_with_retry env GITSTATUS_CACHE_DIR="${HOME}/.powerlevel10k/gitstatus/usrbin"
 
 clone_with_retry https://github.com/zsh-users/zsh-autosuggestions.git "${HOME}/.zsh/zsh-autosuggestions"
 clone_with_retry https://github.com/zsh-users/zsh-syntax-highlighting.git "${HOME}/.zsh/zsh-syntax-highlighting"
+clone_with_retry https://github.com/jeffreytse/zsh-vi-mode.git "${HOME}/.zsh/zsh-vi-mode"
 
 rm -rf \
     "${HOME}/.powerlevel10k/.git" \
     "${HOME}/.zsh/zsh-autosuggestions/.git" \
-    "${HOME}/.zsh/zsh-syntax-highlighting/.git"
+    "${HOME}/.zsh/zsh-syntax-highlighting/.git" \
+    "${HOME}/.zsh/zsh-vi-mode/.git"
 
 install -m 0644 /tmp/dotfiles-docker/.zshrc "${HOME}/.zshrc"
 install -m 0644 /tmp/dotfiles-docker/.p10k.zsh "${HOME}/.p10k.zsh"
