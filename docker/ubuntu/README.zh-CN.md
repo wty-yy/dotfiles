@@ -70,6 +70,12 @@ docker run -it --name ${USER}-ubuntu \
 
 如果需要挂载本地目录到容器，可以添加 `-v /path/to/Coding/:/home/user/Coding`。
 
+如果退出容器后再次进入，需要指定用户名称
+```bash
+docker start ${USER}-ubuntu
+docker exec -it -u user ${USER}-ubuntu zsh
+```
+
 ## 包含内容
 
 - 命令行提示符由 `powerlevel10k` 提供。

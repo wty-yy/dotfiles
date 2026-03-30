@@ -61,6 +61,12 @@ docker run -it --name ${USER}-isaaclab \
 - 上面的运行示例已经默认传入 `DEFAULT_UID` 和 `DEFAULT_GID`，这样挂载文件的属主会尽量和宿主机保持一致。
 - 进入容器的 `zsh` 后会自动 `source /home/user/isaaclab/bin/activate`。
 
+如果退出容器后再次进入，需要指定用户名称
+```bash
+docker start ${USER}-isaaclab
+docker exec -it -u user ${USER}-isaaclab zsh
+```
+
 ## 目录结构
 
 - [Dockerfile](/home/yy/Coding/GitHub/dotfiles/docker/isaaclab/Dockerfile)：镜像定义

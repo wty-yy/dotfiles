@@ -61,6 +61,13 @@ Notes:
 - The run examples above already pass `DEFAULT_UID` and `DEFAULT_GID` so mounted files stay aligned with host ownership.
 - Entering `zsh` auto-sources `/home/user/isaaclab/bin/activate`.
 
+If you exit the container and want to enter it again later, specify the user explicitly:
+
+```bash
+docker start ${USER}-isaaclab
+docker exec -it -u user ${USER}-isaaclab zsh
+```
+
 ## Layout
 
 - [Dockerfile](/home/yy/Coding/GitHub/dotfiles/docker/isaaclab/Dockerfile): image definition

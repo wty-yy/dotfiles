@@ -70,6 +70,13 @@ docker run -it --name ${USER}-ubuntu \
 
 If needed, add `-v /path/to/Coding/:/home/user/Coding` to mount a local directory into the container.
 
+If you exit the container and want to enter it again later, specify the user explicitly:
+
+```bash
+docker start ${USER}-ubuntu
+docker exec -it -u user ${USER}-ubuntu zsh
+```
+
 ## Included Behavior
 
 - Prompt theme is provided by `powerlevel10k`.
