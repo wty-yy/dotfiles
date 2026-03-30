@@ -22,13 +22,24 @@ docker build -t wtyyy/isaaclab:2.3.2.post1 .
 ## 运行
 
 ```bash
-docker run -it --rm --gpus all --name ${USER}-isaaclab wtyyy/isaaclab:2.3.2.post1
+docker run -it --rm \
+    --name ${USER}-isaaclab \
+    -e DEFAULT_UID="$(id -u)" \
+    -e DEFAULT_GID="$(id -g)" \
+    --gpus all \
+    wtyyy/isaaclab:2.3.2.post1
 ```
 
 推荐在图形界面和缓存持久化场景下使用：
 
 ```bash
-docker run -it --name isaaclab_${USER} \
+# 先在宿主机创建缓存目录
+mkdir -p ${HOME}/isaaclab_docker/.cache/ov
+mkdir -p ${HOME}/isaaclab_docker/.nvidia-omniverse
+
+docker run -it --name ${USER}-isaaclab \
+    -e DEFAULT_UID="$(id -u)" \
+    -e DEFAULT_GID="$(id -g)" \
     -e DISPLAY \
     --gpus all \
     -e NVIDIA_DRIVER_CAPABILITIES=all \
@@ -47,6 +58,7 @@ docker run -it --name isaaclab_${USER} \
 
 - 把 `/path/to/Coding` 替换成你本地的工作目录。
 - 如果想复用缓存，建议先在宿主机创建 `${HOME}/isaaclab_docker/.cache/ov` 和 `${HOME}/isaaclab_docker/.nvidia-omniverse`。
+- 上面的运行示例已经默认传入 `DEFAULT_UID` 和 `DEFAULT_GID`，这样挂载文件的属主会尽量和宿主机保持一致。
 - 进入容器的 `zsh` 后会自动 `source /home/user/isaaclab/bin/activate`。
 
 ## 目录结构

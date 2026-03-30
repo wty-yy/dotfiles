@@ -22,13 +22,24 @@ docker build -t wtyyy/isaaclab:2.3.2.post1 .
 ## Run
 
 ```bash
-docker run -it --rm --gpus all --name ${USER}-isaaclab wtyyy/isaaclab:2.3.2.post1
+docker run -it --rm \
+    --name ${USER}-isaaclab \
+    -e DEFAULT_UID="$(id -u)" \
+    -e DEFAULT_GID="$(id -g)" \
+    --gpus all \
+    wtyyy/isaaclab:2.3.2.post1
 ```
 
 Recommended for GUI usage with persistent Omniverse cache:
 
 ```bash
-docker run -it --name isaaclab_${USER} \
+# Create cache directories on host first
+mkdir -p ${HOME}/isaaclab_docker/.cache/ov
+mkdir -p ${HOME}/isaaclab_docker/.nvidia-omniverse
+
+docker run -it --name ${USER}-isaaclab \
+    -e DEFAULT_UID="$(id -u)" \
+    -e DEFAULT_GID="$(id -g)" \
     -e DISPLAY \
     --gpus all \
     -e NVIDIA_DRIVER_CAPABILITIES=all \
@@ -47,6 +58,7 @@ Notes:
 
 - Replace `/path/to/Coding` with your local workspace path.
 - Create `${HOME}/isaaclab_docker/.cache/ov` and `${HOME}/isaaclab_docker/.nvidia-omniverse` on the host first if you want persistent cache reuse.
+- The run examples above already pass `DEFAULT_UID` and `DEFAULT_GID` so mounted files stay aligned with host ownership.
 - Entering `zsh` auto-sources `/home/user/isaaclab/bin/activate`.
 
 ## Layout

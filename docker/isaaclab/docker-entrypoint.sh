@@ -17,6 +17,12 @@ find_user_name_by_uid() {
     awk -F: -v target_uid="${uid}" '$3 == target_uid { print $1; exit }' /etc/passwd
 }
 
+user_in_group() {
+    username="$1"
+    groupname="$2"
+    id -nG "${username}" | tr ' ' '\n' | grep -Fx "${groupname}" >/dev/null 2>&1
+}
+
 set_user_home() {
     username="$1"
     current_home="$(getent passwd "${username}" | cut -d: -f6)"
@@ -104,6 +110,16 @@ ensure_user() {
         return
     fi
 
+    if [ -e "${DEFAULT_HOME}" ]; then
+        useradd \
+            --uid "${DEFAULT_UID}" \
+            --gid "${TARGET_GROUP}" \
+            --home-dir "${DEFAULT_HOME}" \
+            --shell /usr/bin/zsh \
+            "${DEFAULT_USER}"
+        return
+    fi
+
     useradd \
         --uid "${DEFAULT_UID}" \
         --gid "${TARGET_GROUP}" \
@@ -111,6 +127,28 @@ ensure_user() {
         --create-home \
         --shell /usr/bin/zsh \
         "${DEFAULT_USER}"
+}
+
+ensure_access_groups() {
+    for entry in "${DEFAULT_HOME}"/* "${DEFAULT_HOME}"/.[!.]* "${DEFAULT_HOME}"/..?*; do
+        if [ ! -e "${entry}" ]; then
+            continue
+        fi
+
+        entry_gid="$(stat -c '%g' "${entry}")"
+        if [ "${entry_gid}" = "${DEFAULT_GID}" ] || [ "${entry_gid}" = "0" ]; then
+            continue
+        fi
+
+        entry_group="$(find_group_name_by_gid "${entry_gid}")"
+        if [ -z "${entry_group}" ]; then
+            continue
+        fi
+
+        if ! user_in_group "${DEFAULT_USER}" "${entry_group}"; then
+            usermod -aG "${entry_group}" "${DEFAULT_USER}"
+        fi
+    done
 }
 
 sync_root_config() {
@@ -149,6 +187,7 @@ select_workdir() {
 
 TARGET_GROUP="$(ensure_group)"
 ensure_user
+ensure_access_groups
 sync_root_config
 ensure_sudo_access
 select_workdir

@@ -104,6 +104,16 @@ ensure_user() {
         return
     fi
 
+    if [ -e "${DEFAULT_HOME}" ]; then
+        useradd \
+            --uid "${DEFAULT_UID}" \
+            --gid "${TARGET_GROUP}" \
+            --home-dir "${DEFAULT_HOME}" \
+            --shell /usr/bin/zsh \
+            "${DEFAULT_USER}"
+        return
+    fi
+
     useradd \
         --uid "${DEFAULT_UID}" \
         --gid "${TARGET_GROUP}" \

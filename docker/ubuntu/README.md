@@ -41,13 +41,7 @@ docker build --build-arg UBUNTU_TAG=22.04 -t wtyyy/ubuntu:22.04 .
 
 ## Run
 
-Start an interactive shell:
-
-```bash
-docker run -it --rm --name ${USER}-ubuntu wtyyy/ubuntu:24.04
-```
-
-Adjust the fixed `user` account to match the host UID/GID:
+Run Ubuntu 24.04 with host UID/GID alignment:
 
 ```bash
 docker run -it --rm \
@@ -57,16 +51,24 @@ docker run -it --rm \
   wtyyy/ubuntu:24.04
 ```
 
-If you want to mount the current working directory into the container:
+Example with GUI support:
 
 ```bash
-docker run -it --rm \
-  --name ${USER}-ubuntu \
+docker run -it --name ${USER}-ubuntu \
   -e DEFAULT_UID="$(id -u)" \
   -e DEFAULT_GID="$(id -g)" \
-  -v "$(pwd)":/home/user/workspace \
-  wtyyy/ubuntu:24.04
+  -e DISPLAY \
+  --gpus all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  -e "__NV_PRIME_RENDER_OFFLOAD=1" \
+  -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
+  -v "/tmp/.X11-unix:/tmp/.X11-unix" \
+  -v /usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/nvidia_icd.json:ro \
+  --net=host \
+  wtyyy/ubuntu:24.04 zsh
 ```
+
+If needed, add `-v /path/to/Coding/:/home/user/Coding` to mount a local directory into the container.
 
 ## Included Behavior
 
@@ -94,7 +96,7 @@ docker run -it --rm \
 
 - Build requires network access because `powerlevel10k` and zsh plugins are cloned during image build.
 - If GitHub access is unstable, `setup-docker.sh` already retries clone and gitstatus download.
-- Docker cannot reliably detect the host UID/GID by itself; if you want mounted files to match host ownership, pass `DEFAULT_UID` and `DEFAULT_GID` to `docker run`.
+- The run examples above already pass `DEFAULT_UID` and `DEFAULT_GID` so mounted files stay aligned with host ownership.
 
 ### GitHub Actions (Publish to Docker Hub)
 

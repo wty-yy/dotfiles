@@ -41,13 +41,7 @@ docker build --build-arg UBUNTU_TAG=22.04 -t wtyyy/ubuntu:22.04 .
 
 ## 运行
 
-启动一个交互式 shell：
-
-```bash
-docker run -it --rm --name ${USER}-ubuntu wtyyy/ubuntu:24.04
-```
-
-按宿主机 UID/GID 调整固定的 `user` 用户：
+运行 Ubuntu 24.04 并对齐宿主机 UID/GID：
 
 ```bash
 docker run -it --rm \
@@ -57,16 +51,24 @@ docker run -it --rm \
   wtyyy/ubuntu:24.04
 ```
 
-如果希望把当前工作目录挂载进容器：
+带可视化界面支持的运行示例：
 
 ```bash
-docker run -it --rm \
-  --name ${USER}-ubuntu \
+docker run -it --name ${USER}-ubuntu \
   -e DEFAULT_UID="$(id -u)" \
   -e DEFAULT_GID="$(id -g)" \
-  -v "$(pwd)":/home/user/workspace \
-  wtyyy/ubuntu:24.04
+  -e DISPLAY \
+  --gpus all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  -e "__NV_PRIME_RENDER_OFFLOAD=1" \
+  -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
+  -v "/tmp/.X11-unix:/tmp/.X11-unix" \
+  -v /usr/share/vulkan/icd.d/nvidia_icd.json:/usr/share/vulkan/icd.d/nvidia_icd.json:ro \
+  --net=host \
+  wtyyy/ubuntu:24.04 zsh
 ```
+
+如果需要挂载本地目录到容器，可以添加 `-v /path/to/Coding/:/home/user/Coding`。
 
 ## 包含内容
 
@@ -94,7 +96,7 @@ docker run -it --rm \
 
 - 构建时需要联网，因为 `powerlevel10k` 和 zsh 插件是在镜像构建阶段通过 Git 拉取的。
 - 如果 GitHub 网络不稳定，`setup-docker.sh` 已经包含 clone 和 `gitstatus` 下载重试逻辑。
-- Docker 容器本身无法稳定自动识别宿主机 UID/GID；如果你希望挂载文件的属主和宿主机一致，建议在 `docker run` 时传入 `DEFAULT_UID` 和 `DEFAULT_GID`。
+- 上面的运行示例已经默认传入 `DEFAULT_UID` 和 `DEFAULT_GID`，这样挂载文件的属主会尽量和宿主机保持一致。
 
 ### GitHub Actions（发布到 Docker Hub）
 

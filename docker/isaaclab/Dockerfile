@@ -41,6 +41,12 @@ RUN set -eux; \
     install -d -m 0755 "${DEFAULT_HOME}"; \
     cp -a "${PREPARED_HOME}/." "${DEFAULT_HOME}/"; \
     chown -R "${DEFAULT_UID}:${DEFAULT_GID}" "${DEFAULT_HOME}"; \
+    for entry in "${DEFAULT_HOME}/isaaclab" "${DEFAULT_HOME}/.local" "${DEFAULT_HOME}/.cache" "${DEFAULT_HOME}/.config"; do \
+        if [ -e "${entry}" ]; then \
+            chmod -R g+rwX "${entry}"; \
+            find "${entry}" -type d -exec chmod g+s {} +; \
+        fi; \
+    done; \
     rm -rf "${PREPARED_HOME}"
 
 RUN set -eux; \
