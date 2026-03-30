@@ -17,28 +17,17 @@ ENV UV_LINK_MODE=copy
 ENV HOME=${DEFAULT_HOME}
 ENV PATH=${DEFAULT_HOME}/.local/bin:${PATH}
 
-RUN set -eux; \
-    install -d -m 0755 "${PREPARED_HOME}"
-
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
+WORKDIR ${PREPARED_HOME}
+
 RUN set -eux; \
+    install -d -m 0755 "${PREPARED_HOME}" "${DEFAULT_HOME}"; \
     uv venv "${UV_ENV_NAME}" --python "${PYTHON_VERSION}" --seed; \
     . "${UV_ENV_NAME}/bin/activate"; \
     uv pip install -U "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url https://download.pytorch.org/whl/cu128; \
     pip install --no-cache-dir "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" --extra-index-url https://pypi.nvidia.com; \
-    rm -rf "${HOME}/.cache/pip" "${HOME}/.cache/uv"
-
-RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends libgomp1 libglu1; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends mesa-utils vulkan-tools x11-apps; \
-    apt-get clean; \
-    rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-    install -d -m 0755 "${DEFAULT_HOME}"; \
+    rm -rf "${HOME}/.cache/pip" "${HOME}/.cache/uv"; \
     cp -a "${PREPARED_HOME}/." "${DEFAULT_HOME}/"; \
     chown -R "${DEFAULT_UID}:${DEFAULT_GID}" "${DEFAULT_HOME}"; \
     for entry in "${DEFAULT_HOME}/isaaclab" "${DEFAULT_HOME}/.local" "${DEFAULT_HOME}/.cache" "${DEFAULT_HOME}/.config"; do \
@@ -48,6 +37,14 @@ RUN set -eux; \
         fi; \
     done; \
     rm -rf "${PREPARED_HOME}"
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends libgomp1 libglu1; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends mesa-utils vulkan-tools x11-apps; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
     ACTIVATE_BLOCK_START="# >>> isaaclab auto-activate >>>"; \
