@@ -161,6 +161,23 @@ select_workdir() {
 DEFAULT_UID="${DEFAULT_UID:-1000}"
 DEFAULT_GID="${DEFAULT_GID:-1000}"
 
+if [ "$(id -u)" != "0" ]; then
+    current_uid="$(id -u)"
+    current_gid="$(id -g)"
+
+    if [ "${ENTRYPOINT_REEXEC_AS_ROOT:-0}" != "1" ] && {
+        [ "${current_uid}" != "${DEFAULT_UID}" ] || [ "${current_gid}" != "${DEFAULT_GID}" ];
+    }; then
+        exec sudo -E env ENTRYPOINT_REEXEC_AS_ROOT=1 /usr/local/bin/docker-entrypoint.sh "$@"
+    fi
+
+    select_workdir
+    export HOME="${DEFAULT_HOME}"
+    export USER="${DEFAULT_USER}"
+    export LOGNAME="${DEFAULT_USER}"
+    exec "$@"
+fi
+
 TARGET_GROUP="$(ensure_group)"
 ensure_user
 sync_root_config

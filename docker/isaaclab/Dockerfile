@@ -1,6 +1,8 @@
 ARG BASE_IMAGE=wtyyy/ubuntu:24.04
 FROM ${BASE_IMAGE}
 
+USER root
+
 ARG DEFAULT_USER=user
 ARG DEFAULT_UID=1000
 ARG DEFAULT_GID=1000
@@ -15,7 +17,7 @@ ARG ISAACLAB_VERSION=2.3.2.post1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV UV_LINK_MODE=copy
 ENV HOME=${DEFAULT_HOME}
-ENV PATH=${DEFAULT_HOME}/.local/bin:${PATH}
+ENV PATH=${DEFAULT_HOME}/${UV_ENV_NAME}/bin:${DEFAULT_HOME}/.local/bin:${PATH}
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
@@ -49,7 +51,7 @@ RUN set -eux; \
 RUN set -eux; \
     ACTIVATE_BLOCK_START="# >>> isaaclab auto-activate >>>"; \
     ACTIVATE_BLOCK_END="# <<< isaaclab auto-activate <<<"; \
-    for zshrc in /root/.zshrc /etc/skel/.zshrc; do \
+    for zshrc in /root/.zshrc /etc/skel/.zshrc "${DEFAULT_HOME}/.zshrc"; do \
         if ! grep -Fq "${ACTIVATE_BLOCK_START}" "${zshrc}"; then \
             printf '\n%s\nif [ -f "%s/%s/bin/activate" ] && [ -z "${VIRTUAL_ENV:-}" ]; then\n  source "%s/%s/bin/activate"\nfi\n%s\n' \
                 "${ACTIVATE_BLOCK_START}" "${DEFAULT_HOME}" "${UV_ENV_NAME}" "${DEFAULT_HOME}" "${UV_ENV_NAME}" "${ACTIVATE_BLOCK_END}" >> "${zshrc}"; \
@@ -59,7 +61,7 @@ RUN set -eux; \
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-USER root
+USER user
 WORKDIR ${DEFAULT_HOME}
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["/usr/bin/zsh"]
