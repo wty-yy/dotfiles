@@ -70,10 +70,10 @@ docker run -it --name ${USER}-ubuntu \
 
 如果需要挂载本地目录到容器，可以添加 `-v /path/to/Coding/:/home/user/Coding`。
 
-如果退出容器后再次进入，需要指定用户名称
+如果退出容器后再次进入：
 ```bash
 docker start ${USER}-ubuntu
-docker exec -it ${USER}-ubuntu sudo -iu user zsh
+docker exec -it ${USER}-ubuntu zsh
 ```
 
 ## 包含内容
@@ -84,8 +84,10 @@ docker exec -it ${USER}-ubuntu sudo -iu user zsh
 - 目录颜色使用与仓库根目录 `zshrc` 相同的 `dircolors` 覆盖规则，目录显示为青色。
 - `vim` 使用一份最小配置，启用 `gruvbox`、行号、相对行号、当前行高亮和 4 空格缩进。
 - 容器时区固定为 `Asia/Shanghai`。
-- 容器启动时会创建固定的 `user` 用户，把 `/root` 下预先准备好的 shell/vim 配置同步到 `/home/user`，然后再切换过去。
-- 新用户会获得免密码 `sudo`，这是保留普通用户 shell 体验的同时最接近 root 权限的做法。
+- 镜像默认用户是 `user`，默认工作目录是 `/home/user`。
+- 容器启动时会在需要时把 `user` 的 UID/GID 对齐到 `DEFAULT_UID` 和 `DEFAULT_GID`，然后继续以该用户运行。
+- shell 配置、`powerlevel10k` 和 zsh 插件会在镜像构建阶段准备到 `/home/user`。
+- `user` 默认拥有免密码 `sudo`，需要管理员权限时可以直接使用。
 
 ## 目录结构
 

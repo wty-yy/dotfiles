@@ -59,13 +59,15 @@ Notes:
 - Replace `/path/to/Coding` with your local workspace path.
 - Create `${HOME}/isaaclab_docker/.cache/ov` and `${HOME}/isaaclab_docker/.nvidia-omniverse` on the host first if you want persistent cache reuse.
 - The run examples above already pass `DEFAULT_UID` and `DEFAULT_GID` so mounted files stay aligned with host ownership.
-- Entering `zsh` auto-sources `/home/user/isaaclab/bin/activate`.
+- The image defaults to user `user`, and the default working directory is `/home/user`.
+- `PATH` already includes `/home/user/isaaclab/bin`, so `python` and `pip` point to the Isaac Lab environment by default.
+- Entering `zsh` also auto-sources `/home/user/isaaclab/bin/activate`.
 
-If you exit the container and want to enter it again later, specify the user explicitly:
+If you exit the container and want to enter it again later:
 
 ```bash
 docker start ${USER}-isaaclab
-docker exec -it ${USER}-isaaclab sudo -iu user zsh
+docker exec -it ${USER}-isaaclab zsh
 ```
 
 ## Layout

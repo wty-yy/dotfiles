@@ -70,11 +70,11 @@ docker run -it --name ${USER}-ubuntu \
 
 If needed, add `-v /path/to/Coding/:/home/user/Coding` to mount a local directory into the container.
 
-If you exit the container and want to enter it again later, specify the user explicitly:
+If you exit the container and want to enter it again later:
 
 ```bash
 docker start ${USER}-ubuntu
-docker exec -it ${USER}-ubuntu sudo -iu user zsh
+docker exec -it ${USER}-ubuntu zsh
 ```
 
 ## Included Behavior
@@ -85,8 +85,10 @@ docker exec -it ${USER}-ubuntu sudo -iu user zsh
 - Directory color uses the same `dircolors` override as the main repo `zshrc`, with directories shown in cyan.
 - `vim` uses a minimal config with `gruvbox`, line numbers, relative numbers, cursorline, and 4-space indentation.
 - Container timezone is set to `Asia/Shanghai`.
-- Container startup creates a fixed `user` account, syncs the prepared shell/vim config from `/root` into `/home/user`, and then switches to that user.
-- The new user gets passwordless `sudo`, which is the closest practical equivalent to root privileges while keeping a normal user shell.
+- The image defaults to user `user`, and the default working directory is `/home/user`.
+- Container startup aligns `user` to `DEFAULT_UID` and `DEFAULT_GID` when needed, then keeps the shell in that user.
+- Shell config, `powerlevel10k`, and zsh plugins are prepared in `/home/user` during image build.
+- The user gets passwordless `sudo`, so admin tasks can still be run when needed.
 
 ## Layout
 

@@ -59,12 +59,14 @@ docker run -it --name ${USER}-isaaclab \
 - 把 `/path/to/Coding` 替换成你本地的工作目录。
 - 如果想复用缓存，建议先在宿主机创建 `${HOME}/isaaclab_docker/.cache/ov` 和 `${HOME}/isaaclab_docker/.nvidia-omniverse`。
 - 上面的运行示例已经默认传入 `DEFAULT_UID` 和 `DEFAULT_GID`，这样挂载文件的属主会尽量和宿主机保持一致。
-- 进入容器的 `zsh` 后会自动 `source /home/user/isaaclab/bin/activate`。
+- 镜像默认用户是 `user`，默认工作目录是 `/home/user`。
+- `PATH` 已经包含 `/home/user/isaaclab/bin`，所以默认的 `python` 和 `pip` 就是 Isaac Lab 环境里的版本。
+- 进入容器的 `zsh` 后也会自动 `source /home/user/isaaclab/bin/activate`。
 
-如果退出容器后再次进入，需要指定用户名称
+如果退出容器后再次进入：
 ```bash
 docker start ${USER}-isaaclab
-docker exec -it ${USER}-isaaclab sudo -iu user zsh
+docker exec -it ${USER}-isaaclab zsh
 ```
 
 ## 目录结构
