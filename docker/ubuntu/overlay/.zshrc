@@ -34,6 +34,14 @@ fi
 
 export EDITOR='vim'
 
+function zvm_config() {
+  ZVM_INSERT_MODE_CURSOR=$ZVM_CURSOR_BLOCK
+  ZVM_NORMAL_MODE_CURSOR=$ZVM_CURSOR_BLOCK
+  ZVM_VISUAL_MODE_CURSOR=$ZVM_CURSOR_BLOCK
+  ZVM_VISUAL_LINE_MODE_CURSOR=$ZVM_CURSOR_BLOCK
+  ZVM_OPPEND_MODE_CURSOR=$ZVM_CURSOR_BLOCK
+}
+
 [[ -r "${HOME}/.powerlevel10k/powerlevel10k.zsh-theme" ]] && source "${HOME}/.powerlevel10k/powerlevel10k.zsh-theme"
 [[ -f "${HOME}/.p10k.zsh" ]] && source "${HOME}/.p10k.zsh"
 [[ -r "${HOME}/.zsh/zsh-vi-mode/zsh-vi-mode.plugin.zsh" ]] && source "${HOME}/.zsh/zsh-vi-mode/zsh-vi-mode.plugin.zsh"

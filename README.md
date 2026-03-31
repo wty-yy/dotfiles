@@ -10,20 +10,6 @@ Firstly, install relative packages.
 sudo apt install vim git zsh tmux wget curl
 ```
 
-Use proxy, if need:
-```bash
-export https_proxy=http://127.0.0.1:7890  # change proxy id:port
-```
-
-Install oh-my-zsh:
-```bash
-sudo apt install zsh
-# China
-sh -c "$(wget -O- https://gitee.com/mirrors/oh-my-zsh/raw/master/tools/install.sh)"
-# Others
-sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-```
-
 Get into the directory, use `chmod` can change the highest access permissions, make `.sh` file can be run.
 
 ```sh
