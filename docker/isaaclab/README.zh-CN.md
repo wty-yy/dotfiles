@@ -1,36 +1,41 @@
-# isaaclab
+# IsaacLab Docker 镜像
 
-[English Version](./README.md)
+[English](./README.md) | 中文
 
-## 概述
+## 目录
 
-这个镜像基于 `wtyyy/ubuntu:24.04`，并在 `/home/user` 下安装 Isaac Lab 运行环境，包括：
+- [概览](#概览)
+- [构建](#构建)
+- [运行](#运行)
+- [GitHub Actions](#github-actions)
 
-- `uv`
-- 虚拟环境 `/home/user/isaaclab`
-- `torch==2.7.0`
-- `torchvision==0.22.0`
-- `isaaclab[isaacsim,all]==2.3.2.post1`
-- 运行库：`libgomp1`、`libglu1`、`mesa-utils`、`vulkan-tools`、`x11-apps`
+## 概览
+
+该镜像基于 `wtyyy/ubuntu:24.04`，并在 `/home/user` 中安装 Isaac Lab 环境，包含：
+
+- `uv` 以及位于 `/home/user/isaaclab` 的 uv venv
+- Python 包，可按需在 `Dockerfile` 中修改版本：
+  - `torch==2.7.0`
+  - `torchvision==0.22.0`
+  - `isaaclab[isaacsim,all]==2.3.2.post1`
+- 系统运行时包：
+  - IsaacSim：`libgomp1`、`libglu1`
+  - 渲染与调试：`mesa-utils`、`vulkan-tools`、`x11-apps`
 
 ## 构建
 
 ```bash
-docker build -t wtyyy/isaaclab:2.3.2.post1 .
+cd docker
+docker build -t wtyyy/isaaclab:2.3.2.post1 isaaclab
 ```
 
 ## 运行
 
-```bash
-docker run -it --rm \
-    --name ${USER}-isaaclab \
-    -e DEFAULT_UID="$(id -u)" \
-    -e DEFAULT_GID="$(id -g)" \
-    --gpus all \
-    wtyyy/isaaclab:2.3.2.post1
-```
+> 先安装 [`nvidia-container-toolkit`](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)，才能在 Docker 中启用 NVIDIA GPU 支持。
 
-推荐在图形界面和缓存持久化场景下使用：
+先在宿主机上运行 `xhost +local:docker`，以允许 Docker 容器访问 X11。
+
+带 X11 图形界面、NVIDIA GPU、Vulkan、host 网络、输入设备、挂载缓存文件和挂载工作区的普通用户示例：
 
 ```bash
 # 先在宿主机创建缓存目录
@@ -41,51 +46,55 @@ docker run -it --name ${USER}-isaaclab \
   -e DEFAULT_UID="$(id -u)" \
   -e DEFAULT_GID="$(id -g)" \
   -e DISPLAY \
+  -v "/tmp/.X11-unix:/tmp/.X11-unix" \
   --gpus all \
   -e NVIDIA_DRIVER_CAPABILITIES=all \
   -e "__NV_PRIME_RENDER_OFFLOAD=1" \
   -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
-  -v "/tmp/.X11-unix:/tmp/.X11-unix" \
   -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
+  --device /dev/input \
+  --group-add $(getent group input | cut -d: -f3) \
+  --net=host \
   -v /path/to/Coding:/home/user/Coding \
   -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  --net=host \
   wtyyy/isaaclab:2.3.2.post1 zsh
 ```
 
-说明：
+- X11：
+  - `-e DISPLAY`：指定 X11 转发显示
+  - `-v "/tmp/.X11-unix:/tmp/.X11-unix"`：挂载 X11 socket 以支持 GUI
+- `--gpus all`：启用全部 GPU
+- NVIDIA 环境变量用于 GPU 渲染和 Vulkan 支持
+  - `-e NVIDIA_DRIVER_CAPABILITIES=all`：启用全部 NVIDIA 驱动能力
+  - `-e "__NV_PRIME_RENDER_OFFLOAD=1"`：用于 NVIDIA PRIME render offload
+  - `-e "__GLX_VENDOR_LIBRARY_NAME=nvidia"`：使用 NVIDIA GLX 库
+  - `-v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro`：挂载 NVIDIA Vulkan ICD 以支持 Vulkan
+- `--device /dev/input` 和 `--group-add $(getent group input | cut -d: -f3)`：允许访问输入设备
+- `--net=host`：使用宿主机网络
+- `-v /path/to/Coding:/home/user/Coding`：将本地工作区挂载到容器中，可选
+- `-v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov` 和 `-v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse`：挂载缓存目录以持久化资源
 
-- 把 `/path/to/Coding` 替换成你本地的工作目录。
-- 如果想复用缓存，建议先在宿主机创建 `${HOME}/isaaclab_docker/.cache/ov` 和 `${HOME}/isaaclab_docker/.nvidia-omniverse`。
-- 上面的运行示例已经默认传入 `DEFAULT_UID` 和 `DEFAULT_GID`，这样挂载文件的属主会尽量和宿主机保持一致。
-- 镜像默认用户是 `user`，默认工作目录是 `/home/user`。
-- `PATH` 已经包含 `/home/user/isaaclab/bin`，所以默认的 `python` 和 `pip` 就是 Isaac Lab 环境里的版本。
-- 进入容器的 `zsh` 后也会自动 `source /home/user/isaaclab/bin/activate`。
+如果退出容器后想再次进入：
 
-如果退出容器后再次进入：
 ```bash
 docker start ${USER}-isaaclab
 docker exec -it ${USER}-isaaclab zsh
 ```
 
-## 目录结构
-
-- [Dockerfile](/home/yy/Coding/GitHub/dotfiles/docker/isaaclab/Dockerfile)：镜像定义
-
 ## GitHub Actions
 
-仓库已包含工作流 `.github/workflows/docker-isaaclab.yml`。
+该仓库包含 Dockerfile 自动构建工作流 [`.github/workflows/docker-isaaclab.yml`](../../.github/workflows/docker-isaaclab.yml) 上传到 [Docker Hub - wtyyy/isaaclab](https://hub.docker.com/repository/docker/wtyyy/isaaclab)：
 
-- 触发条件：推送到 `main` 或 `master` 且改动 `docker/isaaclab/**`、`docker/ubuntu/**`，或手动触发 `workflow_dispatch`
+- 触发条件：推送到 `main` 或 `master`，且改动路径包含 `docker/isaaclab/**`、`docker/ubuntu/**`
 - 默认输出镜像：
   - `wtyyy/isaaclab:2.3.2.post1`
-- 手动发版：
+- 手动发布：
   - 触发 `workflow_dispatch`
   - 填写 `isaaclab_version`
-  - 输出镜像会变成 `wtyyy/isaaclab:<isaaclab_version>`
+  - 输出变为 `wtyyy/isaaclab:<isaaclab_version>`
 
-运行前请先在仓库 Secrets 中配置：
+运行工作流前需要配置以下仓库 secrets：
 
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`

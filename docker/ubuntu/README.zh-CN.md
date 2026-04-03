@@ -1,60 +1,75 @@
-# ubuntu
+# Ubuntu Docker Image
 
-[English Version](./README.md)
+[English](./README.md) | 中文
 
 ## 目录
 
-- [概述](#概述)
+- [概览](#概览)
 - [构建](#构建)
 - [运行](#运行)
-- [包含内容](#包含内容)
-- [目录结构](#目录结构)
-- [说明](#说明)
+- [GitHub Actions](#github-actions)
 
-## 概述
+## 概览
 
-这是一个支持 Ubuntu `24.04` 与 `22.04` 的精简 Docker 镜像，包含：
+精简版 Ubuntu Docker 镜像，支持 `24.04` 和 `22.04`，包含：
 
-- `zsh`
-- 带仓库 `.tmux` 配置的 `tmux`
-- `powerlevel10k`
-- `zsh-autosuggestions`
-- `zsh-syntax-highlighting`
-- 带 `gruvbox` 配色的 `vim`
-- 时区固定为 `Asia/Shanghai`
-
-这套配置没有安装 `oh-my-zsh`，而是直接在 `.zshrc` 中加载 `powerlevel10k`。
+- `zsh`，预装 `powerlevel10k` 和常用插件
+- `tmux`，使用仓库里的 `.tmux` 配置
+- `vim`，使用 `gruvbox`
+- 时区为 `Asia/Shanghai`
+- 支持通过 `DEFAULT_UID` 和 `DEFAULT_GID` 指定运行用户，尤其在挂载宿主机目录时，**可让新建文件保持宿主机用户权限**
 
 ## 构建
 
-在当前目录执行（默认基础镜像是 `ubuntu:24.04`）：
+在当前目录的上一级 `docker` 下执行，默认基础镜像为 `ubuntu:24.04`：
 
 ```bash
-docker build -t wtyyy/ubuntu:24.04 .
+cd docker
+docker build -t wtyyy/ubuntu:24.04 ubuntu
 ```
 
-构建 Ubuntu 22.04 版本：
+构建 Ubuntu 22.04：
 
 ```bash
-docker build --build-arg UBUNTU_TAG=22.04 -t wtyyy/ubuntu:22.04 .
+docker build --build-arg UBUNTU_TAG=22.04 -t wtyyy/ubuntu:22.04 ubuntu
 ```
 
 ## 运行
 
-运行 Ubuntu 24.04 并对齐宿主机 UID/GID：
+### 基础示例
+
+按宿主机 UID/GID 对齐运行 Ubuntu 24.04：
 
 ```bash
 docker run -it --rm \
-  --name ${USER}-ubuntu \
+  --name "${USER}-ubuntu" \
   -e DEFAULT_UID="$(id -u)" \
   -e DEFAULT_GID="$(id -g)" \
   wtyyy/ubuntu:24.04
 ```
 
-带可视化界面支持的运行示例：
+- `-it`：交互终端
+- `--rm`：退出后自动删除容器
+- `--name`：容器名称
+- `-e DEFAULT_UID` 和 `-e DEFAULT_GID`：传入宿主机用户 UID/GID，用于文件权限对齐
+
+以 root 运行：
 
 ```bash
-docker run -it --name ${USER}-ubuntu \
+docker run -it --rm \
+  --name "${USER}-ubuntu-root" \
+  -u 0 \
+  wtyyy/ubuntu:24.04
+```
+
+### 渲染示例
+
+> 先安装 [`nvidia-container-toolkit`](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)，才能在 Docker 中启用 NVIDIA GPU 支持。
+
+带 X11 图形界面、NVIDIA GPU、Vulkan、host 网络和输入设备的普通用户示例：
+
+```bash
+docker run -it --name "${USER}-ubuntu" \
   -e DEFAULT_UID="$(id -u)" \
   -e DEFAULT_GID="$(id -g)" \
   -e DISPLAY \
@@ -62,60 +77,48 @@ docker run -it --name ${USER}-ubuntu \
   -e NVIDIA_DRIVER_CAPABILITIES=all \
   -e "__NV_PRIME_RENDER_OFFLOAD=1" \
   -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
-  -v "/tmp/.X11-unix:/tmp/.X11-unix" \
   -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
+  -v "/tmp/.X11-unix:/tmp/.X11-unix" \
+  --device /dev --group-add $(getent group input | cut -d: -f3) \
   --net=host \
   wtyyy/ubuntu:24.04 zsh
 ```
 
-如果需要挂载本地目录到容器，可以添加 `-v /path/to/Coding/:/home/user/Coding`。
+- `-e DISPLAY`：指定 X11 转发显示
+- `--gpus all`：启用全部 GPU
+- NVIDIA 环境变量用于 GPU 渲染和 Vulkan 支持
+  - `-e NVIDIA_DRIVER_CAPABILITIES=all`：启用全部 NVIDIA 驱动能力
+  - `-e "__NV_PRIME_RENDER_OFFLOAD=1"`：用于 NVIDIA PRIME render offload
+  - `-e "__GLX_VENDOR_LIBRARY_NAME=nvidia"`：使用 NVIDIA GLX 库
+  - `-v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro`：挂载 NVIDIA Vulkan ICD 以支持 Vulkan
+- `-v "/tmp/.X11-unix:/tmp/.X11-unix"`：挂载 X11 socket 以支持 GUI
+- `--device /dev`：允许访问全部设备
+- `--group-add $(getent group input | cut -d: -f3)`：允许访问输入设备
+- `--net=host`：使用宿主机网络
 
-如果退出容器后再次进入：
+如果需要挂载本地工作目录，可追加：
+
+```bash
+-v /path/to/Coding/:/home/user/Coding
+```
+
+退出后重新进入已有容器：
+
 ```bash
 docker start ${USER}-ubuntu
 docker exec -it ${USER}-ubuntu zsh
 ```
 
-## 包含内容
+## GitHub Actions
 
-- 命令行提示符由 `powerlevel10k` 提供。
-- `tmux` 会直接使用仓库里的 `.tmux.conf` 和 `.tmux.conf.local`。
-- `gitstatusd` 会在镜像构建阶段下载好，因此首次进入 shell 时不需要再额外等待下载。
-- 目录颜色使用与仓库根目录 `zshrc` 相同的 `dircolors` 覆盖规则，目录显示为青色。
-- `vim` 使用一份最小配置，启用 `gruvbox`、行号、相对行号、当前行高亮和 4 空格缩进。
-- 容器时区固定为 `Asia/Shanghai`。
-- 镜像默认用户是 `user`，默认工作目录是 `/home/user`。
-- 容器启动时会在需要时把 `user` 的 UID/GID 对齐到 `DEFAULT_UID` 和 `DEFAULT_GID`，然后继续以该用户运行。
-- shell 配置、`powerlevel10k` 和 zsh 插件会在镜像构建阶段准备到 `/home/user`。
-- `user` 默认拥有免密码 `sudo`，需要管理员权限时可以直接使用。
+该仓库包含 Dockerfile 自动构建工作流 [`.github/workflows/docker-ubuntu.yml`](../../.github/workflows/docker-ubuntu.yml) 上传到 [Docker Hub - wtyyy/ubuntu](https://hub.docker.com/repository/docker/wtyyy/ubuntu)。
 
-## 目录结构
-
-- [Dockerfile](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/Dockerfile)：镜像定义
-- [overlay/.zshrc](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.zshrc)：shell 配置
-- [overlay/.p10k.zsh](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.p10k.zsh)：p10k 提示符配置
-- [overlay/.tmux.conf](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.tmux.conf)：tmux 基础配置
-- [overlay/.tmux.conf.local](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.tmux.conf.local)：tmux 本地覆盖配置
-- [overlay/.vimrc](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/.vimrc)：最小 vim 配置
-- [overlay/gruvbox.vim](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/gruvbox.vim)：vim 配色文件
-- [overlay/setup-docker.sh](/home/yy/Coding/GitHub/dotfiles/docker/ubuntu/overlay/setup-docker.sh)：构建阶段执行的安装脚本
-
-## 说明
-
-- 构建时需要联网，因为 `powerlevel10k` 和 zsh 插件是在镜像构建阶段通过 Git 拉取的。
-- 如果 GitHub 网络不稳定，`setup-docker.sh` 已经包含 clone 和 `gitstatus` 下载重试逻辑。
-- 上面的运行示例已经默认传入 `DEFAULT_UID` 和 `DEFAULT_GID`，这样挂载文件的属主会尽量和宿主机保持一致。
-
-### GitHub Actions（发布到 Docker Hub）
-
-仓库已包含工作流 `.github/workflows/docker-ubuntu.yml`。
-
-- 触发条件：推送到 `main` 或 `master` 且改动 `docker/ubuntu/**`（或手动触发 `workflow_dispatch`）
+- 触发条件：推送到 `main` 或 `master`，且改动路径包含 `docker/ubuntu/**`
 - 输出镜像：
   - `wtyyy/ubuntu:24.04`
   - `wtyyy/ubuntu:22.04`
 
-在仓库 Secrets 中先配置：
+运行工作流前需要配置以下仓库 secrets：
 
 - `DOCKERHUB_USERNAME`
-- `DOCKERHUB_TOKEN`（Docker Hub Access Token）
+- `DOCKERHUB_TOKEN`（Docker Hub access token）

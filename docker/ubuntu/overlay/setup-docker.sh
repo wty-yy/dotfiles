@@ -37,34 +37,20 @@ run_with_retry() {
     return 1
 }
 
-install -d "${HOME}/.zsh"
-clone_with_retry https://github.com/romkatv/powerlevel10k.git "${HOME}/.powerlevel10k"
-install -d "${HOME}/.powerlevel10k/gitstatus/usrbin"
-run_with_retry env GITSTATUS_CACHE_DIR="${HOME}/.powerlevel10k/gitstatus/usrbin" \
-    "${HOME}/.powerlevel10k/gitstatus/install" -f
+TARGET_DIR="${1}"
 
-clone_with_retry https://github.com/zsh-users/zsh-autosuggestions.git "${HOME}/.zsh/zsh-autosuggestions"
-clone_with_retry https://github.com/zsh-users/zsh-syntax-highlighting.git "${HOME}/.zsh/zsh-syntax-highlighting"
-clone_with_retry https://github.com/jeffreytse/zsh-vi-mode.git "${HOME}/.zsh/zsh-vi-mode"
+install -d "${TARGET_DIR}/.zsh"
+clone_with_retry https://github.com/romkatv/powerlevel10k.git "${TARGET_DIR}/.powerlevel10k"
+install -d "${TARGET_DIR}/.powerlevel10k/gitstatus/usrbin"
+run_with_retry env GITSTATUS_CACHE_DIR="${TARGET_DIR}/.powerlevel10k/gitstatus/usrbin" \
+    "${TARGET_DIR}/.powerlevel10k/gitstatus/install" -f
+
+clone_with_retry https://github.com/zsh-users/zsh-autosuggestions.git "${TARGET_DIR}/.zsh/zsh-autosuggestions"
+clone_with_retry https://github.com/zsh-users/zsh-syntax-highlighting.git "${TARGET_DIR}/.zsh/zsh-syntax-highlighting"
+clone_with_retry https://github.com/jeffreytse/zsh-vi-mode.git "${TARGET_DIR}/.zsh/zsh-vi-mode"
 
 rm -rf \
-    "${HOME}/.powerlevel10k/.git" \
-    "${HOME}/.zsh/zsh-autosuggestions/.git" \
-    "${HOME}/.zsh/zsh-syntax-highlighting/.git" \
-    "${HOME}/.zsh/zsh-vi-mode/.git"
-
-install -m 0644 /tmp/dotfiles-docker/.zshrc "${HOME}/.zshrc"
-install -m 0644 /tmp/dotfiles-docker/.p10k.zsh "${HOME}/.p10k.zsh"
-install -m 0644 /tmp/dotfiles-docker/.tmux.conf "${HOME}/.tmux.conf"
-install -m 0644 /tmp/dotfiles-docker/.tmux.conf.local "${HOME}/.tmux.conf.local"
-install -d "${HOME}/.vim/colors"
-install -m 0644 /tmp/dotfiles-docker/.vimrc "${HOME}/.vimrc"
-install -m 0644 /tmp/dotfiles-docker/gruvbox.vim "${HOME}/.vim/colors/gruvbox.vim"
-install -d /etc/skel
-install -m 0644 /tmp/dotfiles-docker/.zshrc /etc/skel/.zshrc
-install -m 0644 /tmp/dotfiles-docker/.p10k.zsh /etc/skel/.p10k.zsh
-install -m 0644 /tmp/dotfiles-docker/.tmux.conf /etc/skel/.tmux.conf
-install -m 0644 /tmp/dotfiles-docker/.tmux.conf.local /etc/skel/.tmux.conf.local
-install -d /etc/skel/.vim/colors
-install -m 0644 /tmp/dotfiles-docker/.vimrc /etc/skel/.vimrc
-install -m 0644 /tmp/dotfiles-docker/gruvbox.vim /etc/skel/.vim/colors/gruvbox.vim
+    "${TARGET_DIR}/.powerlevel10k/.git" \
+    "${TARGET_DIR}/.zsh/zsh-autosuggestions/.git" \
+    "${TARGET_DIR}/.zsh/zsh-syntax-highlighting/.git" \
+    "${TARGET_DIR}/.zsh/zsh-vi-mode/.git"

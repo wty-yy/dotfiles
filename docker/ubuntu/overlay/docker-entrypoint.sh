@@ -2,189 +2,83 @@
 set -eu
 
 DEFAULT_USER="user"
-DEFAULT_UID="${DEFAULT_UID:-}"
-DEFAULT_GID="${DEFAULT_GID:-}"
-DEFAULT_HOME_BASE="${DEFAULT_HOME_BASE:-/home}"
-DEFAULT_HOME="${DEFAULT_HOME:-${DEFAULT_HOME_BASE}/${DEFAULT_USER}}"
-
-find_group_name_by_gid() {
-    gid="$1"
-    awk -F: -v target_gid="${gid}" '$3 == target_gid { print $1; exit }' /etc/group
-}
-
-find_user_name_by_uid() {
-    uid="$1"
-    awk -F: -v target_uid="${uid}" '$3 == target_uid { print $1; exit }' /etc/passwd
-}
-
-set_user_home() {
-    username="$1"
-    current_home="$(getent passwd "${username}" | cut -d: -f6)"
-
-    if [ "${current_home}" = "${DEFAULT_HOME}" ]; then
-        return
-    fi
-
-    if [ -e "${DEFAULT_HOME}" ]; then
-        usermod -d "${DEFAULT_HOME}" "${username}"
-        return
-    fi
-
-    usermod -d "${DEFAULT_HOME}" -m "${username}"
-}
-
-set_user_shell() {
-    username="$1"
-    current_shell="$(getent passwd "${username}" | cut -d: -f7)"
-
-    if [ "${current_shell}" = "/usr/bin/zsh" ]; then
-        return
-    fi
-
-    usermod -s /usr/bin/zsh "${username}"
-}
-
-set_user_primary_group() {
-    username="$1"
-    target_group="$2"
-    current_gid="$(id -g "${username}")"
-    target_gid="$(getent group "${target_group}" | cut -d: -f3)"
-
-    if [ "${current_gid}" = "${target_gid}" ]; then
-        return
-    fi
-
-    usermod -g "${target_group}" "${username}"
-}
-
-ensure_group() {
-    if getent group "${DEFAULT_USER}" >/dev/null 2>&1; then
-        existing_gid="$(getent group "${DEFAULT_USER}" | cut -d: -f3)"
-        if [ "${existing_gid}" != "${DEFAULT_GID}" ]; then
-            groupmod -g "${DEFAULT_GID}" "${DEFAULT_USER}"
-        fi
-        printf '%s\n' "${DEFAULT_USER}"
-        return
-    fi
-
-    existing_group="$(find_group_name_by_gid "${DEFAULT_GID}")"
-    if [ -n "${existing_group}" ]; then
-        printf '%s\n' "${existing_group}"
-        return
-    fi
-
-    groupadd -g "${DEFAULT_GID}" "${DEFAULT_USER}"
-    printf '%s\n' "${DEFAULT_USER}"
-}
-
-ensure_user() {
-    if id -u "${DEFAULT_USER}" >/dev/null 2>&1; then
-        existing_uid="$(id -u "${DEFAULT_USER}")"
-        if [ "${existing_uid}" != "${DEFAULT_UID}" ]; then
-            uid_owner="$(find_user_name_by_uid "${DEFAULT_UID}")"
-            if [ -n "${uid_owner}" ] && [ "${uid_owner}" != "${DEFAULT_USER}" ]; then
-                usermod -l "${uid_owner}-old" "${uid_owner}"
-            fi
-            usermod -u "${DEFAULT_UID}" "${DEFAULT_USER}"
-        fi
-        set_user_home "${DEFAULT_USER}"
-        set_user_primary_group "${DEFAULT_USER}" "${TARGET_GROUP}"
-        set_user_shell "${DEFAULT_USER}"
-        return
-    fi
-
-    uid_owner="$(find_user_name_by_uid "${DEFAULT_UID}")"
-    if [ -n "${uid_owner}" ]; then
-        if [ "${uid_owner}" != "${DEFAULT_USER}" ]; then
-            usermod -l "${DEFAULT_USER}" "${uid_owner}"
-        fi
-        set_user_home "${DEFAULT_USER}"
-        set_user_primary_group "${DEFAULT_USER}" "${TARGET_GROUP}"
-        set_user_shell "${DEFAULT_USER}"
-        return
-    fi
-
-    if [ -e "${DEFAULT_HOME}" ]; then
-        useradd \
-            --uid "${DEFAULT_UID}" \
-            --gid "${TARGET_GROUP}" \
-            --home-dir "${DEFAULT_HOME}" \
-            --shell /usr/bin/zsh \
-            "${DEFAULT_USER}"
-        return
-    fi
-
-    useradd \
-        --uid "${DEFAULT_UID}" \
-        --gid "${TARGET_GROUP}" \
-        --home-dir "${DEFAULT_HOME}" \
-        --create-home \
-        --shell /usr/bin/zsh \
-        "${DEFAULT_USER}"
-}
-
-sync_root_config() {
-    install -d -m 0755 "${DEFAULT_HOME}"
-
-    for entry in .zshrc .p10k.zsh .tmux.conf .tmux.conf.local .vimrc .powerlevel10k .zsh .vim; do
-        if [ -e "/root/${entry}" ] && [ ! -e "${DEFAULT_HOME}/${entry}" ]; then
-            cp -a "/root/${entry}" "${DEFAULT_HOME}/${entry}"
-        fi
-    done
-
-    # Avoid recursive chown over the full home directory at every startup.
-    # Large mounted workspaces or preinstalled environments would make
-    # container startup noticeably slow.
-    chown "${DEFAULT_UID}:${DEFAULT_GID}" "${DEFAULT_HOME}"
-    for entry in .zshrc .p10k.zsh .tmux.conf .tmux.conf.local .vimrc; do
-        if [ -e "${DEFAULT_HOME}/${entry}" ]; then
-            chown "${DEFAULT_UID}:${DEFAULT_GID}" "${DEFAULT_HOME}/${entry}"
-        fi
-    done
-    for entry in .powerlevel10k .zsh .vim; do
-        if [ -e "${DEFAULT_HOME}/${entry}" ]; then
-            chown -R "${DEFAULT_UID}:${DEFAULT_GID}" "${DEFAULT_HOME}/${entry}"
-        fi
-    done
-}
-
-ensure_sudo_access() {
-    usermod -aG sudo "${DEFAULT_USER}"
-    printf '%s ALL=(ALL) NOPASSWD:ALL\n' "${DEFAULT_USER}" > "/etc/sudoers.d/90-${DEFAULT_USER}"
-    chmod 0440 "/etc/sudoers.d/90-${DEFAULT_USER}"
-}
-
-select_workdir() {
-    cd "${DEFAULT_HOME}"
-}
-
 DEFAULT_UID="${DEFAULT_UID:-1000}"
 DEFAULT_GID="${DEFAULT_GID:-1000}"
+DEFAULT_HOME="/home/user"
+INITIAL_USER="init-user"
 
+# ==================== Check UID/GID is integer and range is valid (>=1000 and <65536) ==================== 
+if ! [ "${DEFAULT_UID}" -eq "${DEFAULT_UID}" ] 2>/dev/null || [ "${DEFAULT_UID}" -lt 1000 ] || [ "${DEFAULT_UID}" -ge 65536 ]; then
+    echo "ERROR: DEFAULT_UID (${DEFAULT_UID}) is invalid. It must be a number in [1000, 65535]." >&2
+    echo "Hint: UID 0-999 are reserved for system accounts. If you need root, use 'docker run -u 0' instead." >&2
+    exit 1
+fi
+if ! [ "${DEFAULT_GID}" -eq "${DEFAULT_GID}" ] 2>/dev/null || [ "${DEFAULT_GID}" -lt 1000 ] || [ "${DEFAULT_GID}" -ge 65536 ]; then
+    echo "ERROR: DEFAULT_GID (${DEFAULT_GID}) is invalid. It must be a number in [1000, 65535]." >&2
+    echo "Hint: GID 0-999 are reserved for system groups. If you need root group, use 'docker run -g 0' instead." >&2
+    exit 1
+fi
+
+# ==================== Part 1: Check DEFAULT_USER uid and gid is correct as expected ====================
+# Running container as DEFAULT_USER, will use ROOT to run this entrypoint again, goto Part 2
 if [ "$(id -u)" != "0" ]; then
-    current_uid="$(id -u)"
-    current_gid="$(id -g)"
-
-    if [ "${ENTRYPOINT_REEXEC_AS_ROOT:-0}" != "1" ] && {
-        [ "${current_uid}" != "${DEFAULT_UID}" ] || [ "${current_gid}" != "${DEFAULT_GID}" ];
-    }; then
+    if [ "${ENTRYPOINT_REEXEC_AS_ROOT:-0}" != "1" ] && { [ "$(id -u)" != "${DEFAULT_UID}" ] || [ "$(id -g)" != "${DEFAULT_GID}" ]; }; then
         exec sudo -E env ENTRYPOINT_REEXEC_AS_ROOT=1 /usr/local/bin/docker-entrypoint.sh "$@"
     fi
-
-    select_workdir
     export HOME="${DEFAULT_HOME}"
     export USER="${DEFAULT_USER}"
     export LOGNAME="${DEFAULT_USER}"
     exec "$@"
 fi
 
-TARGET_GROUP="$(ensure_group)"
-ensure_user
-sync_root_config
-ensure_sudo_access
-select_workdir
+# ==================== Part 2: ROOT EXECUTION ====================
 
-export HOME="${DEFAULT_HOME}"
-export USER="${DEFAULT_USER}"
-export LOGNAME="${DEFAULT_USER}"
-exec gosu "${DEFAULT_USER}" "$@"
+CURRENT_UID="$(id -u "${DEFAULT_USER}")"
+CURRENT_GID="$(id -g "${DEFAULT_USER}")"
+
+# To avoid usermod's default change home directory permission, we set a temporary home
+if [ "${CURRENT_UID}" != "${DEFAULT_UID}" ] || [ "${CURRENT_GID}" != "${DEFAULT_GID}" ]; then
+    mkdir -p /tmp/dummy_home
+    usermod -d /tmp/dummy_home "${DEFAULT_USER}"
+
+    # Align CURRENT_GID to DEFAULT_GID, if needed
+    if [ "${CURRENT_GID}" != "${DEFAULT_GID}" ]; then
+        existing_group="$(getent group "${DEFAULT_GID}" | cut -d: -f1 || true)"
+        if [ -n "${existing_group}" ] && [ "${existing_group}" != "${DEFAULT_USER}" ]; then
+            groupdel "${existing_group}"
+        fi
+        groupmod -g "${DEFAULT_GID}" "${DEFAULT_USER}"
+    fi
+
+    # Align CURRENT_UID to DEFAULT_UID, if needed
+    if [ "${CURRENT_UID}" != "${DEFAULT_UID}" ]; then
+        uid_owner="$(getent passwd "${DEFAULT_UID}" | cut -d: -f1 || true)"
+        if [ -n "${uid_owner}" ] && [ "${uid_owner}" != "${DEFAULT_USER}" ]; then
+            userdel "${uid_owner}"
+        fi
+        usermod -u "${DEFAULT_UID}" "${DEFAULT_USER}"
+    fi
+
+    usermod -d "${DEFAULT_HOME}" "${DEFAULT_USER}"
+    rm -rf /tmp/dummy_home
+fi
+
+# Add DEFAULT_USER to INITIAL_USER's groups, get all files permission in DEFAULT_HOME
+usermod -aG "${INITIAL_USER}" "${DEFAULT_USER}"
+
+if [ "${ENTRYPOINT_REEXEC_AS_ROOT:-0}" = "1" ]; then
+    # If entrypoint is re-execed with root, start DEFAULT_USER
+    export HOME="${DEFAULT_HOME}"
+    export USER="${DEFAULT_USER}"
+    export LOGNAME="${DEFAULT_USER}"
+    exec gosu "${DEFAULT_USER}" "$@"
+else
+    # If entrypoint is root, docker run -u 0, start with root
+    export HOME="/root"
+    export USER="root"
+    export LOGNAME="root"
+    if [ "$PWD" = "${DEFAULT_HOME}" ]; then
+        cd "/root"
+    fi
+    exec "$@"
+fi
