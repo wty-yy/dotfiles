@@ -17,7 +17,7 @@
 - `tmux`，使用仓库里的 `.tmux` 配置
 - `vim`，使用 `gruvbox`
 - 时区为 `Asia/Shanghai`
-- 支持通过 `DEFAULT_UID` 和 `DEFAULT_GID` 指定运行用户，尤其在挂载宿主机目录时，**可让新建文件保持宿主机用户权限**
+- 支持通过 `DEFAULT_UID` 和 `DEFAULT_GID` 指定运行用户，尤其在挂载宿主机目录时，**在容器中新建文件依旧保持宿主机用户权限**
 
 ## 构建
 

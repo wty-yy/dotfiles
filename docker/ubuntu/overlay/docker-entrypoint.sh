@@ -22,13 +22,7 @@ fi
 # ==================== Part 1: Check DEFAULT_USER uid and gid is correct as expected ====================
 # Running container as DEFAULT_USER, will use ROOT to run this entrypoint again, goto Part 2
 if [ "$(id -u)" != "0" ]; then
-    if [ "${ENTRYPOINT_REEXEC_AS_ROOT:-0}" != "1" ] && { [ "$(id -u)" != "${DEFAULT_UID}" ] || [ "$(id -g)" != "${DEFAULT_GID}" ]; }; then
-        exec sudo -E env ENTRYPOINT_REEXEC_AS_ROOT=1 /usr/local/bin/docker-entrypoint.sh "$@"
-    fi
-    export HOME="${DEFAULT_HOME}"
-    export USER="${DEFAULT_USER}"
-    export LOGNAME="${DEFAULT_USER}"
-    exec "$@"
+    exec sudo -E env ENTRYPOINT_REEXEC_AS_ROOT=1 /usr/local/bin/docker-entrypoint.sh "$@"
 fi
 
 # ==================== Part 2: ROOT EXECUTION ====================
@@ -67,6 +61,25 @@ fi
 usermod -aG "${INITIAL_USER}" "${DEFAULT_USER}"
 
 if [ "${ENTRYPOINT_REEXEC_AS_ROOT:-0}" = "1" ]; then
+    # ==================== Mount path permission fix ====================
+    # If mount path didn't exist, it will be mkdir by root, we only fix path under DEFAULT_HOME
+    MOUNTED_PATHS=$(awk -v home="${DEFAULT_HOME}/" '$2 ~ "^"home {print $2}' /proc/mounts)
+    for mount_path in ${MOUNTED_PATHS}; do
+        relative_path="${mount_path#${DEFAULT_HOME}/}"
+        current_path="${DEFAULT_HOME}"
+
+        old_ifs="$IFS"
+        IFS='/'
+        for part in ${relative_path}; do
+            if [ -z "${part}" ]; then continue; fi
+            current_path="${current_path}/${part}"
+            if [ "$(stat -c '%u' "${current_path}" 2>/dev/null)" = "0" ]; then
+                chown "${DEFAULT_UID}":"${DEFAULT_GID}" "${current_path}" 2>/dev/null || true
+            fi
+        done
+        IFS="${old_ifs}"
+    done
+
     # If entrypoint is re-execed with root, start DEFAULT_USER
     export HOME="${DEFAULT_HOME}"
     export USER="${DEFAULT_USER}"

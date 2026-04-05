@@ -17,7 +17,7 @@ Minimal Ubuntu Docker image (supports `24.04` and `22.04`) with:
 - `tmux` with the repo's `.tmux` configuration
 - `vim` with `gruvbox`
 - timezone with `Asia/Shanghai`
-- running by user specified `DEFAULT_UID` and `DEFAULT_GID`, which **make created files owned by the host user**, especially when mounting volumes
+- running by user specified `DEFAULT_UID` and `DEFAULT_GID`, which **make created files in container still owned by the host user**, especially when mounting volumes
 
 ## Build
 
