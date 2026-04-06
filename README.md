@@ -1,8 +1,14 @@
 # My Dotfiles
 
-> [CHANGELOG.zh-CN](./CHANGELOG.zh-CN.md)
+This repository contains my personal dotfiles, common scripts and docker images.
 
-## Usage
+## Links
+
+- [scripts](./scripts/)
+- [docker](./docker/)
+- [CHANGELOG.zh-CN](./CHANGELOG.zh-CN.md)
+
+## Dotfiles Usage
 
 Firstly, install relative packages.
 
