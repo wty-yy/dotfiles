@@ -82,7 +82,7 @@ docker run -it --name "${USER}-ubuntu" \
   -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
   -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
   --device /dev/input \
-  --group-add $(getent group input | cut -d: -f3) \
+  -e EXTRA_GIDS="$(getent group input | cut -d: -f3)" \
   --net=host \
   wtyyy/ubuntu:24.04 zsh
 ```
@@ -96,7 +96,7 @@ docker run -it --name "${USER}-ubuntu" \
   - `-e "__NV_PRIME_RENDER_OFFLOAD=1"`: for NVIDIA PRIME render offload
   - `-e "__GLX_VENDOR_LIBRARY_NAME=nvidia"`: use NVIDIA GLX library
   - `-v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro`: mount NVIDIA Vulkan ICD for Vulkan support
-- `--device /dev/input` and `--group-add $(getent group input | cut -d: -f3)`: allow access to input devices
+- `--device /dev/input` and `-e EXTRA_GIDS="$(getent group input | cut -d: -f3)"`: allow access to input devices and add `input` group for permissions
 - `--net=host`: use host network
 
 If needed, add `-v /path/to/Coding/:/home/user/Coding` to mount a local directory into the container.

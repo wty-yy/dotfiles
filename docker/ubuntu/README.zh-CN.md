@@ -79,7 +79,8 @@ docker run -it --name "${USER}-ubuntu" \
   -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
   -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
   -v "/tmp/.X11-unix:/tmp/.X11-unix" \
-  --device /dev --group-add $(getent group input | cut -d: -f3) \
+  --device /dev/input \
+  -e EXTRA_GIDS="$(getent group input | cut -d: -f3)" \
   --net=host \
   wtyyy/ubuntu:24.04 zsh
 ```
@@ -92,8 +93,7 @@ docker run -it --name "${USER}-ubuntu" \
   - `-e "__GLX_VENDOR_LIBRARY_NAME=nvidia"`：使用 NVIDIA GLX 库
   - `-v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro`：挂载 NVIDIA Vulkan ICD 以支持 Vulkan
 - `-v "/tmp/.X11-unix:/tmp/.X11-unix"`：挂载 X11 socket 以支持 GUI
-- `--device /dev`：允许访问全部设备
-- `--group-add $(getent group input | cut -d: -f3)`：允许访问输入设备
+- `--device /dev/input` 和 `-e EXTRA_GIDS="$(getent group input | cut -d: -f3)"`：允许访问输入设备并将用户加入 `input` 组以获取权限
 - `--net=host`：使用宿主机网络
 
 如果需要挂载本地工作目录，可追加：

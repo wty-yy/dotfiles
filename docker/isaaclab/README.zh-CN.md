@@ -53,7 +53,7 @@ docker run -it --name ${USER}-isaaclab \
   -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
   -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
   --device /dev/input \
-  --group-add $(getent group input | cut -d: -f3) \
+  -e EXTRA_GIDS="$(getent group input | cut -d: -f3)" \
   --net=host \
   -v /path/to/Coding:/home/user/Coding \
   -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
@@ -70,7 +70,7 @@ docker run -it --name ${USER}-isaaclab \
   - `-e "__NV_PRIME_RENDER_OFFLOAD=1"`：用于 NVIDIA PRIME render offload
   - `-e "__GLX_VENDOR_LIBRARY_NAME=nvidia"`：使用 NVIDIA GLX 库
   - `-v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro`：挂载 NVIDIA Vulkan ICD 以支持 Vulkan
-- `--device /dev/input` 和 `--group-add $(getent group input | cut -d: -f3)`：允许访问输入设备
+- `--device /dev/input` 和 `-e EXTRA_GIDS="$(getent group input | cut -d: -f3)"`：允许访问输入设备并将用户加入 `input` 组以获取权限
 - `--net=host`：使用宿主机网络
 - `-v /path/to/Coding:/home/user/Coding`：将本地工作区挂载到容器中，可选
 - `-v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov` 和 `-v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse`：挂载缓存目录以持久化资源

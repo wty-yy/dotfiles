@@ -60,6 +60,22 @@ fi
 # Add DEFAULT_USER to INITIAL_USER's groups, get all files permission in DEFAULT_HOME
 usermod -aG "${INITIAL_USER}" "${DEFAULT_USER}"
 
+# ==================== Add DEFAULT_USER to EXTRA_GIDS groups ====================
+if [ -n "${EXTRA_GIDS:-}" ]; then
+    old_ifs="$IFS"
+    IFS=','
+    for gid in ${EXTRA_GIDS}; do
+        if [ -z "${gid}" ]; then continue; fi
+        group_name=$(getent group "${gid}" | cut -d: -f1 || true)
+        if [ -z "${group_name}" ]; then
+            group_name="extra_group_${gid}"
+            groupadd -g "${gid}" "${group_name}" || true
+        fi
+        usermod -aG "${group_name}" "${DEFAULT_USER}"
+    done
+    IFS="${old_ifs}"
+fi
+
 if [ "${ENTRYPOINT_REEXEC_AS_ROOT:-0}" = "1" ]; then
     # ==================== Mount path permission fix ====================
     # If mount path didn't exist, it will be mkdir by root, we only fix path under DEFAULT_HOME

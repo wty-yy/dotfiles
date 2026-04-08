@@ -1,5 +1,6 @@
 ## CHANGELOG
 
+- 2026.4.8: 新增[scripts/codex_api_config.py](./scripts/codex_api_config.py)为codex配置api的配置文件
 - 2026.3.30:
     - 新增[isaaclab/Dockerfile](./docker/isaaclab/Dockerfile)
     - 新增[reencode_videos.py](./scripts/reencode_videos.py)使用ffmpeg重新编码视频文件
