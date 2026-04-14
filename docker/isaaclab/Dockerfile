@@ -35,7 +35,7 @@ RUN set -eux; \
     uv venv "${UV_ENV_NAME}" --python "${PYTHON_VERSION}" --seed; \
     . "${UV_ENV_NAME}/bin/activate"; \
     uv pip install --no-cache-dir "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url https://download.pytorch.org/whl/cu128; \
-    uv pip install --no-cache-dir "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" --extra-index-url https://pypi.nvidia.com; \
+    uv pip install --no-cache-dir "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" "omniverse-kit" --extra-index-url https://pypi.nvidia.com; \
     rm -rf "${DEFAULT_HOME}/.cache"; \
     chmod -R g+rwX "${DEFAULT_HOME}/${UV_ENV_NAME}" "${DEFAULT_HOME}/.local"
 
