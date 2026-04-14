@@ -35,6 +35,8 @@ docker build -t wtyyy/isaaclab:2.3.2.post1 isaaclab
 
 先在宿主机上运行 `xhost +local:docker`，以允许 Docker 容器访问 X11。
 
+### 以普通用户运行（UID >= 1000）
+
 带 X11 图形界面、NVIDIA GPU、Vulkan、host 网络、输入设备、挂载缓存文件和挂载工作区的普通用户示例：
 
 ```bash
@@ -80,6 +82,47 @@ docker run -it --name ${USER}-isaaclab \
 ```bash
 docker start ${USER}-isaaclab
 docker exec -it ${USER}-isaaclab zsh
+```
+
+### 以 root 运行（UID = 0）
+
+不推荐以 root 用户运行（`-u root`），因为所有 shell 文件和缓存都生成在 `/home/user` 目录下。下面的示例演示如何在宿主机创建一个用户并将其加入 root 组。
+
+```bash
+# 默认 root 权限
+adduser -M -N user  # 创建不带 home 目录和组的用户
+usermod -aG root user  # 将用户加入 root 组，获得访问组文件的权限
+
+mkdir -p ${HOME}/isaaclab_docker/.cache/ov
+mkdir -p ${HOME}/isaaclab_docker/.nvidia-omniverse
+
+# chmod: 为挂载目录设置组读/写/执行权限
+# setfacl: 为挂载目录中新创建的文件/目录设置默认组权限
+chmod -R g+rwx ${HOME}/isaaclab_docker/.cache/ov
+setfacl -R -d -m g::rwx ${HOME}/isaaclab_docker/.cache/ov
+chmod -R g+rwx ${HOME}/isaaclab_docker/.nvidia-omniverse
+setfacl -R -d -m g::rwx ${HOME}/isaaclab_docker/.nvidia-omniverse
+chmod -R g+rwx /path/to/Coding  # 如果你要挂载工作区
+setfacl -R -d -m g::rwx /path/to/Coding
+
+docker run -it --name user-isaaclab \
+  -e DEFAULT_UID="$(id -u user)" \
+  -e DEFAULT_GID="$(id -g user)" \
+  -e DISPLAY \
+  -v "/tmp/.X11-unix:/tmp/.X11-unix" \
+  --gpus all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  -e "__NV_PRIME_RENDER_OFFLOAD=1" \
+  -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
+  -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
+  --device /dev/input \
+  -e EXTRA_GIDS="$(getent group input | cut -d: -f3)" \
+  -e EXTRA_GIDS="$(getent group root | cut -d: -f3)" \
+  --net=host \
+  -v /path/to/Coding:/home/user/Coding \
+  -v /home/user/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
+  -v /home/user/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
+  wtyyy/isaaclab:2.3.2.post1 zsh
 ```
 
 ## GitHub Actions

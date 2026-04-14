@@ -34,6 +34,8 @@ docker build -t wtyyy/isaaclab:2.3.2.post1 isaaclab
 
 Run `xhost +local:docker` on host first to allow accessing X11 from Docker container.
 
+### Run as user (UID >= 1000)
+
 Example USER with X11 GUI support + NVIDIA GPU + Vulkan + host network + input devices + mounted cache files + mounted workspace:
 
 ```bash
@@ -79,6 +81,47 @@ If you exit the container and want to enter it again later:
 ```bash
 docker start ${USER}-isaaclab
 docker exec -it ${USER}-isaaclab zsh
+```
+
+### Run as root (UID = 0)
+
+Running as the root user is not recommended (`-u root`) because all shell files and caches are generated in the `/home/user` directory. The following example demonstrates how to create a user on the host and add it to the root group.
+
+```bash
+# default root permission
+adduser -M -N user  # create user without home directory and group
+usermod -aG root user  # add user to root group to have permission to access group files
+
+mkdir -p ${HOME}/isaaclab_docker/.cache/ov
+mkdir -p ${HOME}/isaaclab_docker/.nvidia-omniverse
+
+# chmod: set group read/write/execute permissions for mount directories
+# setfacl: set default group permissions for newly created files/dirs in mount directories
+chmod -R g+rwx ${HOME}/isaaclab_docker/.cache/ov
+setfacl -R -d -m g::rwx ${HOME}/isaaclab_docker/.cache/ov
+chmod -R g+rwx ${HOME}/isaaclab_docker/.nvidia-omniverse
+setfacl -R -d -m g::rwx ${HOME}/isaaclab_docker/.nvidia-omniverse
+chmod -R g+rwx /path/to/Coding  # if you want to mount workspace
+setfacl -R -d -m g::rwx /path/to/Coding
+
+docker run -it --name user-isaaclab \
+  -e DEFAULT_UID="$(id -u user)" \
+  -e DEFAULT_GID="$(id -g user)" \
+  -e DISPLAY \
+  -v "/tmp/.X11-unix:/tmp/.X11-unix" \
+  --gpus all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  -e "__NV_PRIME_RENDER_OFFLOAD=1" \
+  -e "__GLX_VENDOR_LIBRARY_NAME=nvidia" \
+  -v /etc/vulkan/icd.d/nvidia_icd.json:/etc/vulkan/icd.d/nvidia_icd.json:ro \
+  --device /dev/input \
+  -e EXTRA_GIDS="$(getent group input | cut -d: -f3)" \
+  -e EXTRA_GIDS="$(getent group root | cut -d: -f3)" \
+  --net=host \
+  -v /path/to/Coding:/home/user/Coding \
+  -v /home/user/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
+  -v /home/user/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
+  wtyyy/isaaclab:2.3.2.post1 zsh
 ```
 
 ## GitHub Actions
