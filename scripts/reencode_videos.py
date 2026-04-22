@@ -11,6 +11,7 @@
 9. --crop-top-left / --crop-bottom-right: 指定裁剪区域左上角和右下角坐标
 10. --start-time / --end-time: 指定提取时间段，支持 h:m:s、m:s 或 s
 11. --nvidia: 使用 NVIDIA NVENC 进行硬件加速编码
+12. --speed: 指定音视频倍速，例如 2.0 表示 2 倍速，0.5 表示慢放
 """
 import argparse
 import re
@@ -72,6 +73,25 @@ def parse_time_to_seconds(time_str):
     return seconds
 
 
+def parse_speed_factor(speed_str):
+    """
+    解析并校验倍速参数，要求为正数。
+    """
+    try:
+        speed = float(speed_str)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"无效倍速: '{speed_str}'，必须是数字。"
+        ) from exc
+
+    if speed <= 0:
+        raise argparse.ArgumentTypeError(
+            f"无效倍速: '{speed_str}'，必须大于 0。"
+        )
+
+    return speed
+
+
 def format_seconds(seconds):
     """
     将秒数格式化为 ffmpeg 可接受的 hh:mm:ss。
@@ -80,6 +100,27 @@ def format_seconds(seconds):
     minutes = (seconds % 3600) // 60
     secs = seconds % 60
     return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+
+def build_atempo_filters(speed):
+    """
+    构建 atempo 滤镜链。
+    为兼容不同 ffmpeg 版本，将倍率拆分到 [0.5, 2.0] 区间内。
+    """
+    filters = []
+    remaining = speed
+
+    while remaining > 2.0:
+        filters.append("atempo=2.0")
+        remaining /= 2.0
+
+    while remaining < 0.5:
+        filters.append("atempo=0.5")
+        remaining /= 0.5
+
+    factor_str = f"{remaining:.6f}".rstrip("0").rstrip(".")
+    filters.append(f"atempo={factor_str}")
+    return filters
 
 
 def validate_crop_args(crop_top_left, crop_bottom_right):
@@ -194,6 +235,7 @@ def encode_video(
     crop=None,
     start_time=None,
     end_time=None,
+    speed=1.0,
     use_nvidia=False,
 ):
     """
@@ -204,10 +246,17 @@ def encode_video(
     # -c:v: 视频编码器
     # -crf: 恒定速率因子 (0-51，越小质量越高，23 是 x264 的默认值)
     # -vf: 根据需要设置帧率和分辨率滤镜
-    # -c:a copy: 复制音频流，不重新编码音频以节省时间并保持音质
+    # -af: 在倍速场景下同步处理音频
     resolved_vcodec = resolve_video_codec(vcodec, use_nvidia)
 
     video_filters = []
+    audio_filters = []
+
+    if speed != 1.0:
+        video_speed_ratio = 1 / speed
+        video_filters.append(f"setpts={video_speed_ratio:.10f}*PTS")
+        audio_filters.extend(build_atempo_filters(speed))
+
     if fps is not None:
         video_filters.append(f"fps={fps}")
     if resolution is not None:
@@ -258,10 +307,20 @@ def encode_video(
     if video_filters:
         cmd.extend(['-vf', ','.join(video_filters)])
 
-    cmd.extend([
-        '-c:a', 'copy',
-        str(output_path)
-    ])
+    if audio_filters:
+        cmd.extend(['-af', ','.join(audio_filters)])
+
+    if audio_filters:
+        cmd.extend([
+            '-c:a', 'aac',
+            '-b:a', '192k',
+        ])
+    else:
+        cmd.extend([
+            '-c:a', 'copy',
+        ])
+
+    cmd.append(str(output_path))
     
     print(f"\n[处理中] {input_path.name} -> {output_path.name}")
     try:
@@ -316,6 +375,7 @@ def main():
     parser.add_argument("--start-time", type=parse_time_to_seconds, help="提取开始时间，支持 h:m:s、m:s 或 s，例如 00:01:30、1:30、90")
     parser.add_argument("--end-time", type=parse_time_to_seconds, help="提取结束时间，支持 h:m:s、m:s 或 s，例如 00:02:10、2:10、130")
     parser.add_argument("--nvidia", action="store_true", help="使用 NVIDIA NVENC 进行硬件加速编码；libx264 会自动切换为 h264_nvenc，libx265 会自动切换为 hevc_nvenc")
+    parser.add_argument("--speed", type=parse_speed_factor, default=1.0, help="音视频倍速，1.0 为原速，2.0 为 2 倍速，0.5 为慢放")
 
     args = parser.parse_args()
 
@@ -356,6 +416,8 @@ def main():
         print(f"输出扩展名: {normalize_extension(args.output_ext)}")
     if args.nvidia:
         print("硬件加速: NVIDIA NVENC")
+    if args.speed != 1.0:
+        print(f"倍速: {args.speed}x")
     if crop is not None:
         print(
             "裁剪区域: "
@@ -407,6 +469,7 @@ def main():
             crop=crop,
             start_time=args.start_time,
             end_time=args.end_time,
+            speed=args.speed,
             use_nvidia=args.nvidia,
         )
 
