@@ -36,6 +36,7 @@ RUN set -eux; \
     . "${UV_ENV_NAME}/bin/activate"; \
     uv pip install --no-cache-dir "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url https://download.pytorch.org/whl/cu128; \
     uv pip install --no-cache-dir "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" "omniverse-kit" --extra-index-url https://pypi.nvidia.com; \
+    sed -i 's/mock_python_modules=True/mock_python_modules=False/g' "${DEFAULT_HOME}/isaaclab/lib/python3.11/site-packages/isaaclab/__main__.py"; \
     rm -rf "${DEFAULT_HOME}/.cache"; \
     chmod -R g+rwX "${DEFAULT_HOME}/${UV_ENV_NAME}" "${DEFAULT_HOME}/.local"
 
@@ -45,6 +46,12 @@ RUN set -eux; \
     if ! grep -Fq "${ACTIVATE_BLOCK_START}" "${DEFAULT_HOME}/.zshrc"; then \
         printf '\n%s\nif [ -f "%s/%s/bin/activate" ] && [ -z "${VIRTUAL_ENV:-}" ]; then\n  source "%s/%s/bin/activate"\nfi\n%s\n' \
             "${ACTIVATE_BLOCK_START}" "${DEFAULT_HOME}" "${UV_ENV_NAME}" "${DEFAULT_HOME}" "${UV_ENV_NAME}" "${ACTIVATE_BLOCK_END}" >> "${DEFAULT_HOME}/.zshrc"; \
+    fi
+
+RUN set -eux; \
+    LD_PRELOAD_BLOCK="export LD_PRELOAD=\"${DEFAULT_HOME}/isaaclab/lib/python3.11/site-packages/omni/libcarb.so:\$LD_PRELOAD\""; \
+    if ! grep -Fq "${LD_PRELOAD_BLOCK}" "${DEFAULT_HOME}/.zshrc"; then \
+        printf '\n%s\n' "${LD_PRELOAD_BLOCK}" >> "${DEFAULT_HOME}/.zshrc"; \
     fi
 
 USER ${DEFAULT_USER}
