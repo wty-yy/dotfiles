@@ -49,6 +49,13 @@ set number
 " down.
 set relativenumber
 
+" Turn off syntax when paste text
+augroup bracketed_paste_syntax_restore
+    autocmd!
+    autocmd OptionSet paste if v:option_new ==# '1' | let g:paste_saved_syntax_on = exists('g:syntax_on') | if g:paste_saved_syntax_on | syntax off | endif | let g:paste_syntax_temporarily_disabled = 1 | endif
+    autocmd OptionSet paste if v:option_new ==# '0' && get(g:, 'paste_syntax_temporarily_disabled', 0) | if get(g:, 'paste_saved_syntax_on', 0) | syntax enable | endif | let g:paste_syntax_temporarily_disabled = 0 | endif
+augroup END
+
 " Always show the status line at the bottom, even if you only have one window open.
 "set laststatus=2
 
