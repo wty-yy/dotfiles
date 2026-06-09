@@ -175,7 +175,8 @@ def main():
 
     # Step 3: Install x11vnc and set password
     print(f"\n{Colors.INFO}[Step 3] Installing x11vnc and setting up password...{Colors.RESET}")
-    install_missing_packages(["x11vnc"], apt_env)
+    # x11vnc may call `netstat` when using `-auth guess`; install net-tools to avoid auth detection failures.
+    install_missing_packages(["x11vnc", "net-tools"], apt_env)
     run_cmd(f"x11vnc -storepasswd {args.vnc_password} /etc/x11vnc.pass")
     run_cmd("chmod 644 /etc/x11vnc.pass")
     print(f"{Colors.SUCCESS}[+] x11vnc installed and password saved to /etc/x11vnc.pass.{Colors.RESET}")
@@ -259,6 +260,27 @@ def main():
     script_content.append("# Trap SIGINT (Ctrl+C) and SIGTERM signals")
     script_content.append("trap cleanup SIGINT SIGTERM")
     script_content.append("")
+    script_content.extend([
+        '# Prefer explicit XAUTHORITY; fallback to guess when not found.',
+        'DISPLAY_VALUE="${DISPLAY:-:1}"',
+        'XAUTH_FILE="${XAUTHORITY:-}"',
+        'if [ -z "$XAUTH_FILE" ] || [ ! -r "$XAUTH_FILE" ]; then',
+        '    for candidate in "/run/user/$(id -u)/gdm/Xauthority" "$HOME/.Xauthority"; do',
+        '        if [ -r "$candidate" ]; then',
+        '            XAUTH_FILE="$candidate"',
+        '            break',
+        '        fi',
+        '    done',
+        'fi',
+        'if [ -n "$XAUTH_FILE" ] && [ -r "$XAUTH_FILE" ]; then',
+        '    echo "[*] Using XAUTHORITY: $XAUTH_FILE"',
+        '    XAUTH_ARG="-auth $XAUTH_FILE"',
+        'else',
+        '    echo "[!] XAUTHORITY not found; fallback to -auth guess."',
+        '    XAUTH_ARG="-auth guess"',
+        'fi',
+        ""
+    ])
 
     base_vnc_port = 5900
     base_novnc_port = 6080
@@ -270,11 +292,11 @@ def main():
         
         script_content.extend([
             f"echo '[*] Starting x11vnc for Screen {i+1} ({geo}) on port {vnc_port}...'",
-            f"/usr/bin/x11vnc -auth guess -nodpms -capslock -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -rfbport {vnc_port} -shared -clip {geo} > /dev/null 2>&1 &",
+            f"/usr/bin/x11vnc -display \"${{DISPLAY_VALUE}}\" ${{XAUTH_ARG}} -nodpms -capslock -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -rfbport {vnc_port} -shared -clip {geo} &",
             f"VNC{i+1}_PID=$!",
             "",
             f"echo '[*] Starting noVNC for Screen {i+1} ({novnc_port} -> {vnc_port})...'",
-            f"{novnc_dir}/utils/novnc_proxy --vnc localhost:{vnc_port} --listen {novnc_port} > /dev/null 2>&1 &",
+            f"{novnc_dir}/utils/novnc_proxy --vnc localhost:{vnc_port} --listen {novnc_port} &",
             f"NOVNC{i+1}_PID=$!",
             ""
         ])

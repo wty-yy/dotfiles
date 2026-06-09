@@ -1,6 +1,6 @@
 """
 使用ffmpeg处理视频文件脚本，目前支持功能：
-1. -f, --file: 指定输入目标，可以是单个文件、文件夹，或正则表达式
+1. -f, --file: 指定一个或多个输入目标，可以是文件、文件夹，或正则表达式
 2. -e, --ext: 指定要搜索的视频扩展名，支持多个扩展名
 3. -c, --vcodec: 指定使用的视频编码器，默认libx264
 4. --crf: 指定CRF视频质量控制参数，默认23
@@ -199,6 +199,21 @@ def resolve_input_targets(file_pattern, extensions):
     return found_files, f"正则匹配(相对 {search_root}): {file_pattern}"
 
 
+def resolve_all_input_targets(file_patterns, extensions):
+    """
+    解析一个或多个输入目标，并汇总去重后的文件列表。
+    """
+    all_files = []
+    search_descriptions = []
+
+    for file_pattern in file_patterns:
+        found_files, search_desc = resolve_input_targets(file_pattern, extensions)
+        all_files.extend(found_files)
+        search_descriptions.append(search_desc)
+
+    return sorted(set(all_files)), search_descriptions
+
+
 def resolve_video_codec(vcodec, use_nvidia):
     """
     根据是否启用 NVIDIA 加速，确定最终使用的视频编码器。
@@ -362,7 +377,7 @@ def encode_video(
 def main():
     # 设置 argparse 命令行参数
     parser = argparse.ArgumentParser(description="按文件、目录或正则表达式查找视频，并使用 FFmpeg 重新编码。")
-    parser.add_argument("-f", "--file", required=True, help="[必填] 输入目标，可以是单个文件、文件夹，或正则表达式")
+    parser.add_argument("-f", "--file", nargs='+', required=True, help="[必填] 输入目标，可以是一个或多个文件、文件夹，或正则表达式")
     parser.add_argument("-e", "--ext", nargs='+', default=['.mp4', '.mkv'], help="要搜索的视频扩展名，用空格隔开 (默认: .mp4)。例如: -e .mp4 .mkv .avi")
     parser.add_argument("-c", "--vcodec", default="libx264", help="使用的视频编码器 (默认: libx264，可改如 libx265)")
     parser.add_argument("--crf", type=int, default=23, help="CRF 视频质量控制参数，范围通常在 18-28 之间 (默认: 23)")
@@ -399,13 +414,15 @@ def main():
     extensions = [ext if ext.startswith('.') else f'.{ext}' for ext in args.ext]
 
     try:
-        found_files, search_desc = resolve_input_targets(args.file, extensions)
+        found_files, search_descriptions = resolve_all_input_targets(args.file, extensions)
     except ValueError as exc:
         print(f"[错误] {exc}")
         sys.exit(1)
 
-    print(f"输入目标: {args.file}")
-    print(f"解析方式: {search_desc}")
+    print(f"输入目标: {', '.join(args.file)}")
+    print("解析方式:")
+    for search_desc in search_descriptions:
+        print(f"  - {search_desc}")
     print(f"目标格式: {', '.join(extensions)}")
     print(f"视频编码器: {resolved_vcodec}")
     if args.fps is not None:
@@ -432,8 +449,6 @@ def main():
     if not found_files:
         print("没有找到符合条件的视频文件。")
         sys.exit(0)
-
-    found_files = sorted(set(found_files))
 
     print(f"共找到 {len(found_files)} 个视频文件。开始编码任务...\n")
     print("-" * 40)
