@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 使用ffmpeg处理视频文件脚本，目前支持功能：
 1. -f, --file: 指定一个或多个输入目标，可以是文件、文件夹，或正则表达式
@@ -5,17 +6,20 @@
 3. -c, --vcodec: 指定使用的视频编码器，默认libx264
 4. --crf: 指定CRF视频质量控制参数，默认23
 5. --fps: 指定输出视频帧率，例如30、60；不传则保持原视频帧率
-6. --resolution: 指定输出分辨率高度，仅支持1080、720、360；宽度按原比例自动缩放
+6. --resolution: 指定输出分辨率短边，仅支持1080、720、360；横向按高度缩放，纵向按宽度缩放
 7. --output-ext: 指定输出文件扩展名，例如mp4或.mkv，默认保持原扩展名
 8. --suffix: 指定输出文件名的追加后缀，默认_encoded
 9. --crop-top-left / --crop-bottom-right: 指定裁剪区域左上角和右下角坐标
 10. --start-time / --end-time: 指定提取时间段，支持 h:m:s、m:s 或 s
 11. --nvidia: 使用 NVIDIA NVENC 进行硬件加速编码
 12. --speed: 指定音视频倍速，例如 2.0 表示 2 倍速，0.5 表示慢放
+13. --no_sound: 移除视频的音频流，输出无声视频
+14. --concat: 将去重后的多个视频按命令行输入顺序拼接为一个视频
 """
 import argparse
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 import sys
 
@@ -201,17 +205,23 @@ def resolve_input_targets(file_pattern, extensions):
 
 def resolve_all_input_targets(file_patterns, extensions):
     """
-    解析一个或多个输入目标，并汇总去重后的文件列表。
+    解析一个或多个输入目标，并按首次出现顺序汇总去重后的文件列表。
     """
     all_files = []
+    seen_files = set()
     search_descriptions = []
 
     for file_pattern in file_patterns:
         found_files, search_desc = resolve_input_targets(file_pattern, extensions)
-        all_files.extend(found_files)
+        for file_path in found_files:
+            resolved_path = file_path.resolve()
+            if resolved_path in seen_files:
+                continue
+            seen_files.add(resolved_path)
+            all_files.append(resolved_path)
         search_descriptions.append(search_desc)
 
-    return sorted(set(all_files)), search_descriptions
+    return all_files, search_descriptions
 
 
 def resolve_video_codec(vcodec, use_nvidia):
@@ -240,6 +250,17 @@ def resolve_video_codec(vcodec, use_nvidia):
     )
 
 
+def build_resolution_filter(resolution):
+    """
+    构建自适应横向/纵向视频的缩放滤镜。
+    """
+    return (
+        "scale="
+        f"w='if(gte(iw,ih),-2,{resolution})':"
+        f"h='if(gte(iw,ih),{resolution},-2)'"
+    )
+
+
 def encode_video(
     input_path,
     output_path,
@@ -252,6 +273,7 @@ def encode_video(
     end_time=None,
     speed=1.0,
     use_nvidia=False,
+    no_sound=False,
 ):
     """
     调用 ffmpeg 对视频进行重新编码
@@ -275,8 +297,8 @@ def encode_video(
     if fps is not None:
         video_filters.append(f"fps={fps}")
     if resolution is not None:
-        # 按高度缩放，并让宽度自动适配为偶数，避免部分编码器报错
-        video_filters.append(f"scale=-2:{resolution}")
+        # 横向视频按高度缩放，纵向视频按宽度缩放，另一边自动适配为偶数。
+        video_filters.append(build_resolution_filter(resolution))
     if crop is not None:
         video_filters.append(
             f"crop={crop['width']}:{crop['height']}:{crop['x']}:{crop['y']}"
@@ -322,18 +344,21 @@ def encode_video(
     if video_filters:
         cmd.extend(['-vf', ','.join(video_filters)])
 
-    if audio_filters:
-        cmd.extend(['-af', ','.join(audio_filters)])
-
-    if audio_filters:
-        cmd.extend([
-            '-c:a', 'aac',
-            '-b:a', '192k',
-        ])
+    if no_sound:
+        cmd.extend(['-an'])
     else:
-        cmd.extend([
-            '-c:a', 'copy',
-        ])
+        if audio_filters:
+            cmd.extend(['-af', ','.join(audio_filters)])
+
+        if audio_filters:
+            cmd.extend([
+                '-c:a', 'aac',
+                '-b:a', '192k',
+            ])
+        else:
+            cmd.extend([
+                '-c:a', 'copy',
+            ])
 
     cmd.append(str(output_path))
     
@@ -374,15 +399,138 @@ def encode_video(
         print(f"[错误] 编码失败: {input_path.name}")
         print(f"FFmpeg 报错信息:\n{e.stderr}")
 
+
+def escape_concat_path(file_path):
+    """
+    转义 FFmpeg concat 文件列表中的单引号。
+    """
+    return str(file_path).replace("'", "'\\''")
+
+
+def concat_videos(
+    input_paths,
+    output_path,
+    vcodec='libx264',
+    crf=23,
+    fps=None,
+    resolution=None,
+    crop=None,
+    start_time=None,
+    end_time=None,
+    speed=1.0,
+    use_nvidia=False,
+    no_sound=False,
+):
+    """
+    按输入顺序拼接视频，并对拼接结果进行重新编码。
+    """
+    resolved_vcodec = resolve_video_codec(vcodec, use_nvidia)
+    video_filters = []
+    audio_filters = []
+
+    if speed != 1.0:
+        video_speed_ratio = 1 / speed
+        video_filters.append(f"setpts={video_speed_ratio:.10f}*PTS")
+        audio_filters.extend(build_atempo_filters(speed))
+    if fps is not None:
+        video_filters.append(f"fps={fps}")
+    if resolution is not None:
+        video_filters.append(build_resolution_filter(resolution))
+    if crop is not None:
+        video_filters.append(
+            f"crop={crop['width']}:{crop['height']}:{crop['x']}:{crop['y']}"
+        )
+    if resolved_vcodec == "h264_nvenc":
+        video_filters.append("format=yuv420p")
+
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        suffix=".ffconcat",
+        encoding="utf-8",
+    ) as concat_file:
+        for input_path in input_paths:
+            concat_file.write(f"file '{escape_concat_path(input_path)}'\n")
+        concat_file.flush()
+
+        cmd = ['ffmpeg', '-y']
+        if start_time is not None:
+            cmd.extend(['-ss', format_seconds(start_time)])
+        cmd.extend(['-f', 'concat', '-safe', '0', '-i', concat_file.name])
+
+        if start_time is not None and end_time is not None:
+            cmd.extend(['-t', format_seconds(end_time - start_time)])
+        elif end_time is not None:
+            cmd.extend(['-to', format_seconds(end_time)])
+
+        cmd.extend(['-c:v', resolved_vcodec])
+        if use_nvidia:
+            cmd.extend(['-preset', 'p5', '-rc', 'vbr', '-cq', str(crf)])
+        else:
+            cmd.extend(['-crf', str(crf)])
+
+        if video_filters:
+            cmd.extend(['-vf', ','.join(video_filters)])
+
+        if no_sound:
+            cmd.append('-an')
+        else:
+            if audio_filters:
+                cmd.extend(['-af', ','.join(audio_filters)])
+            cmd.extend(['-c:a', 'aac', '-b:a', '192k'])
+
+        cmd.append(str(output_path))
+
+        input_names = ' -> '.join(path.name for path in input_paths)
+        print(f"\n[拼接中] {input_names}")
+        print(f"[输出] {output_path}")
+
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+            )
+
+            last_progress = ""
+            error_lines = []
+            for line in process.stderr:
+                line = line.strip()
+                if not line:
+                    continue
+                if "time=" in line:
+                    last_progress = line
+                    print(f"\r[进度] {last_progress}", end="", flush=True)
+                else:
+                    error_lines.append(line)
+
+            return_code = process.wait()
+            if last_progress:
+                print()
+            if return_code != 0:
+                raise subprocess.CalledProcessError(
+                    return_code,
+                    cmd,
+                    stderr="\n".join(error_lines),
+                )
+
+            print(f"[成功] 拼接完成: {output_path.name}")
+            return True
+        except subprocess.CalledProcessError as exc:
+            print("[错误] 视频拼接失败")
+            print(f"FFmpeg 报错信息:\n{exc.stderr}")
+            return False
+
 def main():
     # 设置 argparse 命令行参数
     parser = argparse.ArgumentParser(description="按文件、目录或正则表达式查找视频，并使用 FFmpeg 重新编码。")
     parser.add_argument("-f", "--file", nargs='+', required=True, help="[必填] 输入目标，可以是一个或多个文件、文件夹，或正则表达式")
-    parser.add_argument("-e", "--ext", nargs='+', default=['.mp4', '.mkv'], help="要搜索的视频扩展名，用空格隔开 (默认: .mp4)。例如: -e .mp4 .mkv .avi")
+    parser.add_argument("-e", "--ext", nargs='+', default=['.mp4', '.mkv', '.lrf', '.avi'], help="要搜索的视频扩展名，用空格隔开，不区分大小写。例如: -e .mp4 .mkv .avi（默认：.mp4 .mkv .lrf .avi）")
     parser.add_argument("-c", "--vcodec", default="libx264", help="使用的视频编码器 (默认: libx264，可改如 libx265)")
     parser.add_argument("--crf", type=int, default=23, help="CRF 视频质量控制参数，范围通常在 18-28 之间 (默认: 23)")
     parser.add_argument("--fps", type=int, help="输出视频帧率，例如 30、60；不传则保持原视频帧率 (默认原帧率)")
-    parser.add_argument("--resolution", type=int, choices=[1080, 720, 360], help="输出分辨率高度，仅支持 1080、720、360；宽度按原比例自动缩放 (默认原分辨率)")
+    parser.add_argument("--resolution", type=int, choices=[1080, 720, 360], help="输出分辨率短边，仅支持 1080、720、360；横向按高度缩放，纵向按宽度缩放 (默认原分辨率)")
     parser.add_argument("--output-ext", default="mp4", help="输出文件扩展名，例如 mp4 或 .mkv (默认保持原扩展名)")
     parser.add_argument("--suffix", default="_encoded", help="输出文件名的追加后缀 (默认: _encoded)")
     parser.add_argument("--crop-top-left", nargs=2, type=int, metavar=("X1", "Y1"), help="裁剪区域左上角坐标，例如: --crop-top-left 100 50")
@@ -391,6 +539,8 @@ def main():
     parser.add_argument("--end-time", type=parse_time_to_seconds, help="提取结束时间，支持 h:m:s、m:s 或 s，例如 00:02:10、2:10、130")
     parser.add_argument("--nvidia", action="store_true", help="使用 NVIDIA NVENC 进行硬件加速编码；libx264 会自动切换为 h264_nvenc，libx265 会自动切换为 hevc_nvenc")
     parser.add_argument("--speed", type=parse_speed_factor, default=1.0, help="音视频倍速，1.0 为原速，2.0 为 2 倍速，0.5 为慢放")
+    parser.add_argument("--no_sound", action="store_true", help="移除视频的音频流，输出无声视频")
+    parser.add_argument("--concat", action="store_true", help="将去重后的多个视频按命令行输入顺序拼接为一个视频")
 
     args = parser.parse_args()
 
@@ -435,6 +585,8 @@ def main():
         print("硬件加速: NVIDIA NVENC")
     if args.speed != 1.0:
         print(f"倍速: {args.speed}x")
+    if args.no_sound:
+        print("音频: 移除音频流")
     if crop is not None:
         print(
             "裁剪区域: "
@@ -449,6 +601,40 @@ def main():
     if not found_files:
         print("没有找到符合条件的视频文件。")
         sys.exit(0)
+
+    if args.concat:
+        if len(found_files) < 2:
+            print("[错误] --concat 至少需要两个去重后的视频文件。")
+            sys.exit(1)
+
+        output_path = build_output_path(
+            found_files[0],
+            args.suffix,
+            args.output_ext,
+        )
+        if output_path.resolve() in found_files:
+            print(f"[错误] 拼接输出不能覆盖输入文件: {output_path}")
+            sys.exit(1)
+
+        print("拼接顺序:")
+        for index, file_path in enumerate(found_files, start=1):
+            print(f"  {index}. {file_path}")
+
+        succeeded = concat_videos(
+            found_files,
+            output_path,
+            vcodec=args.vcodec,
+            crf=args.crf,
+            fps=args.fps,
+            resolution=args.resolution,
+            crop=crop,
+            start_time=args.start_time,
+            end_time=args.end_time,
+            speed=args.speed,
+            use_nvidia=args.nvidia,
+            no_sound=args.no_sound,
+        )
+        sys.exit(0 if succeeded else 1)
 
     print(f"共找到 {len(found_files)} 个视频文件。开始编码任务...\n")
     print("-" * 40)
@@ -486,6 +672,7 @@ def main():
             end_time=args.end_time,
             speed=args.speed,
             use_nvidia=args.nvidia,
+            no_sound=args.no_sound,
         )
 
     print("\n" + "-" * 40)
