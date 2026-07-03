@@ -40,8 +40,6 @@ If you are using Docker containers, please check the following environment varia
 
 ```bash
 export TERM="xterm-256color"
-apt update && apt install -y locales
-update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 export LANG=en_US.UTF-8
 ```
 
