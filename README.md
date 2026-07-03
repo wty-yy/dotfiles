@@ -35,6 +35,16 @@ chsh -s $(which zsh)
 
 Enjoy command: `vim`, `tmux`, `zsh`
 
+If you find that the font and colors do not match the image below, try installing [nerd font](https://www.nerdfonts.com/) on your shell visualization machine.
+If you are using Docker containers, please check the following environment variables:
+
+```bash
+export TERM="xterm-256color"
+apt update && apt install -y locales
+update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+```
+
 ## Content
 
 log out computer and log back in. (https://askubuntu.com/questions/131823/how-to-make-zsh-the-default-shell)
