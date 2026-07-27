@@ -14,10 +14,11 @@ English | [中文](./README.zh-CN.md)
 This image extends `wtyyy/ubuntu:24.04` and installs the Isaac Lab environment in `/home/user` with:
 
 - `uv` and uv venv at `/home/user/isaaclab`
-- python packages (change versions in `Dockerfile` if needed):
-  - `torch==2.7.0`
-  - `torchvision==0.22.0`
-  - `isaaclab[isaacsim,all]==2.3.2.post1`
+- default Python packages:
+  - Python `3.12`
+  - `torch==2.10.0`
+  - `torchvision==0.25.0`
+  - `isaaclab[isaacsim,all]==3.0.0b2.post1` (Isaac Lab 3.0 Beta 2 Patch 1)
 - system runtime packages:
   - IsaacSim: `libgomp1`, `libglu1`
   - Render & DEBUG: `mesa-utils`, `vulkan-tools`, `x11-apps`
@@ -26,7 +27,7 @@ This image extends `wtyyy/ubuntu:24.04` and installs the Isaac Lab environment i
 
 ```bash
 cd docker
-docker build -t wtyyy/isaaclab:2.3.2.post1 isaaclab
+docker build -t wtyyy/isaaclab:3.0-beta2.patch1 isaaclab
 ```
 
 ## Run
@@ -59,7 +60,7 @@ docker run -it --name ${USER}-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:2.3.2.post1 zsh
+  wtyyy/isaaclab:3.0-beta2.patch1 zsh
 ```
 
 - X11:
@@ -121,7 +122,7 @@ docker run -it --name user-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v /home/user/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v /home/user/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:2.3.2.post1 zsh
+  wtyyy/isaaclab:3.0-beta2.patch1 zsh
 ```
 
 ## GitHub Actions
@@ -129,12 +130,16 @@ docker run -it --name user-isaaclab \
 This repo includes dockerfile auto-building workflow [`.github/workflows/docker-isaaclab.yml`](../../.github/workflows/docker-isaaclab.yml) that upload to [Docker Hub - wtyyy/isaaclab](https://hub.docker.com/repository/docker/wtyyy/isaaclab):
 
 - Trigger: push to `main` or `master` with changes under `docker/isaaclab/**`, `docker/ubuntu/**`
-- Default output image:
+- Version configuration: [`versions.json`](./versions.json)
+  - each entry keeps the image tag, Isaac Lab package version, Python, PyTorch, torchvision, CUDA wheel channel, and prerelease policy together
+  - add or remove one JSON object to change the versions built by the matrix
+- Current output images:
+  - `wtyyy/isaaclab:3.0-beta2.patch1`
   - `wtyyy/isaaclab:2.3.2.post1`
 - Manual release:
   - trigger `workflow_dispatch`
-  - fill `isaaclab_version`
-  - output becomes `wtyyy/isaaclab:<isaaclab_version>`
+  - leave `isaaclab_version` as `all` to build every configured version
+  - enter either an `image_tag` or `isaaclab_version` from `versions.json` to build only that entry
 
 Configure these repository secrets before running the workflow:
 

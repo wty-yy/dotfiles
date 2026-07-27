@@ -13,16 +13,75 @@ on:
   workflow_dispatch:
     inputs:
       isaaclab_version:
-        description: 'Isaac Lab version tag, for example 2.3.2.post1'
+        description: 'Image tag or package version from versions.json; use "all" to build every version'
         required: false
-        default: '2.3.2.post1'
+        default: 'all'
 
 env:
   UBUNTU_TAG: 24.04
-  DEFAULT_ISAACLAB_VERSION: 2.3.2.post1
 
 jobs:
-  build-and-push:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve build matrix
+        id: matrix
+        env:
+          REQUESTED_VERSION: ${{ github.event.inputs.isaaclab_version }}
+        run: |
+          set -euo pipefail
+          config="docker/isaaclab/versions.json"
+          requested_version="${REQUESTED_VERSION:-all}"
+
+          jq -e '
+            type == "array" and
+            length > 0 and
+            all(
+              .[];
+              [
+                .image_tag,
+                .isaaclab_version,
+                .python_version,
+                .torch_version,
+                .torchvision_version,
+                .pytorch_cuda,
+                .uv_prerelease
+              ] | all(type == "string" and length > 0)
+            )
+          ' "$config" >/dev/null
+
+          if [ "$requested_version" = "all" ]; then
+            matrix="$(jq -c '{include: .}' "$config")"
+          else
+            matrix="$(
+              jq -c --arg version "$requested_version" '
+                {
+                  include: map(
+                    select(
+                      .image_tag == $version or
+                      .isaaclab_version == $version
+                    )
+                  )
+                }
+              ' "$config"
+            )"
+          fi
+
+          if [ "$(jq '.include | length' <<<"$matrix")" -eq 0 ]; then
+            echo "Unknown Isaac Lab version: $requested_version" >&2
+            exit 1
+          fi
+
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  build-base:
+    needs: prepare
     runs-on: ubuntu-latest
 
     steps:
@@ -31,15 +90,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Resolve Isaac Lab version
-        id: vars
-        run: |
-          if [ -n "${{ github.event.inputs.isaaclab_version }}" ]; then
-            echo "isaaclab_version=${{ github.event.inputs.isaaclab_version }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "isaaclab_version=${{ env.DEFAULT_ISAACLAB_VERSION }}" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -58,6 +108,29 @@ jobs:
           tags: |
             wtyyy/ubuntu:${{ env.UBUNTU_TAG }}
 
+  build-and-push:
+    name: Isaac Lab ${{ matrix.image_tag }}
+    needs:
+      - prepare
+      - build-base
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build and push Isaac Lab image
         uses: docker/build-push-action@v6
         with:
@@ -66,6 +139,11 @@ jobs:
           push: true
           build-args: |
             BASE_IMAGE=wtyyy/ubuntu:${{ env.UBUNTU_TAG }}
-            ISAACLAB_VERSION=${{ steps.vars.outputs.isaaclab_version }}
+            ISAACLAB_VERSION=${{ matrix.isaaclab_version }}
+            PYTHON_VERSION=${{ matrix.python_version }}
+            TORCH_VERSION=${{ matrix.torch_version }}
+            TORCHVISION_VERSION=${{ matrix.torchvision_version }}
+            PYTORCH_CUDA=${{ matrix.pytorch_cuda }}
+            UV_PRERELEASE=${{ matrix.uv_prerelease }}
           tags: |
-            wtyyy/isaaclab:${{ steps.vars.outputs.isaaclab_version }}
+            wtyyy/isaaclab:${{ matrix.image_tag }}

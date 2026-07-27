@@ -5,10 +5,13 @@ ARG INITIAL_USER=init-user
 ARG DEFAULT_USER=user
 ARG DEFAULT_HOME=/home/user
 ARG UV_ENV_NAME=isaaclab
-ARG PYTHON_VERSION=3.11
-ARG TORCH_VERSION=2.7.0
-ARG TORCHVISION_VERSION=0.22.0
-ARG ISAACLAB_VERSION=2.3.2.post1
+ARG PYTHON_VERSION=3.12
+ARG TORCH_VERSION=2.10.0
+ARG TORCHVISION_VERSION=0.25.0
+ARG PYTORCH_CUDA=cu128
+ARG UV_PRERELEASE=allow
+# Isaac Lab 3.0 Beta 2 Patch 1 uses this PEP 440 package version.
+ARG ISAACLAB_VERSION=3.0.0b2.post1
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV HOME=${DEFAULT_HOME}
@@ -34,9 +37,9 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh; \
 RUN set -eux; \
     uv venv "${UV_ENV_NAME}" --python "${PYTHON_VERSION}" --seed; \
     . "${UV_ENV_NAME}/bin/activate"; \
-    uv pip install --no-cache-dir "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url https://download.pytorch.org/whl/cu128; \
-    uv pip install --no-cache-dir "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" "omniverse-kit" --extra-index-url https://pypi.nvidia.com; \
-    sed -i 's/mock_python_modules=True/mock_python_modules=False/g' "${DEFAULT_HOME}/isaaclab/lib/python3.11/site-packages/isaaclab/__main__.py"; \
+    uv pip install --no-cache-dir "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url "https://download.pytorch.org/whl/${PYTORCH_CUDA}"; \
+    uv pip install --no-cache-dir --prerelease="${UV_PRERELEASE}" --index-strategy unsafe-best-match "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" "omniverse-kit" --extra-index-url https://pypi.nvidia.com; \
+    sed -i 's/mock_python_modules=True/mock_python_modules=False/g' "${DEFAULT_HOME}/${UV_ENV_NAME}/lib/python${PYTHON_VERSION}/site-packages/isaaclab/__main__.py"; \
     rm -rf "${DEFAULT_HOME}/.cache"; \
     chmod -R g+rwX "${DEFAULT_HOME}/${UV_ENV_NAME}" "${DEFAULT_HOME}/.local"
 
@@ -49,7 +52,7 @@ RUN set -eux; \
     fi
 
 RUN set -eux; \
-    LD_PRELOAD_BLOCK="export LD_PRELOAD=\"${DEFAULT_HOME}/isaaclab/lib/python3.11/site-packages/omni/libcarb.so:\$LD_PRELOAD\""; \
+    LD_PRELOAD_BLOCK="export LD_PRELOAD=\"${DEFAULT_HOME}/${UV_ENV_NAME}/lib/python${PYTHON_VERSION}/site-packages/omni/libcarb.so:\$LD_PRELOAD\""; \
     if ! grep -Fq "${LD_PRELOAD_BLOCK}" "${DEFAULT_HOME}/.zshrc"; then \
         printf '\n%s\n' "${LD_PRELOAD_BLOCK}" >> "${DEFAULT_HOME}/.zshrc"; \
     fi

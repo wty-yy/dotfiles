@@ -14,10 +14,11 @@
 该镜像基于 `wtyyy/ubuntu:24.04`，并在 `/home/user` 中安装 Isaac Lab 环境，包含：
 
 - `uv` 以及位于 `/home/user/isaaclab` 的 uv venv
-- Python 包，可按需在 `Dockerfile` 中修改版本：
-  - `torch==2.7.0`
-  - `torchvision==0.22.0`
-  - `isaaclab[isaacsim,all]==2.3.2.post1`
+- 默认 Python 与软件包：
+  - Python `3.12`
+  - `torch==2.10.0`
+  - `torchvision==0.25.0`
+  - `isaaclab[isaacsim,all]==3.0.0b2.post1`（Isaac Lab 3.0 Beta 2 Patch 1）
 - 系统运行时包：
   - IsaacSim：`libgomp1`、`libglu1`
   - 渲染与调试：`mesa-utils`、`vulkan-tools`、`x11-apps`
@@ -26,7 +27,7 @@
 
 ```bash
 cd docker
-docker build -t wtyyy/isaaclab:2.3.2.post1 isaaclab
+docker build -t wtyyy/isaaclab:3.0-beta2.patch1 isaaclab
 ```
 
 ## 运行
@@ -60,7 +61,7 @@ docker run -it --name ${USER}-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:2.3.2.post1 zsh
+  wtyyy/isaaclab:3.0-beta2.patch1 zsh
 ```
 
 - X11：
@@ -122,7 +123,7 @@ docker run -it --name user-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v /home/user/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v /home/user/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:2.3.2.post1 zsh
+  wtyyy/isaaclab:3.0-beta2.patch1 zsh
 ```
 
 ## GitHub Actions
@@ -130,12 +131,16 @@ docker run -it --name user-isaaclab \
 该仓库包含 Dockerfile 自动构建工作流 [`.github/workflows/docker-isaaclab.yml`](../../.github/workflows/docker-isaaclab.yml) 上传到 [Docker Hub - wtyyy/isaaclab](https://hub.docker.com/repository/docker/wtyyy/isaaclab)：
 
 - 触发条件：推送到 `main` 或 `master`，且改动路径包含 `docker/isaaclab/**`、`docker/ubuntu/**`
-- 默认输出镜像：
+- 版本配置文件：[`versions.json`](./versions.json)
+  - 每个条目集中记录镜像标签、Isaac Lab 软件包版本、Python、PyTorch、torchvision、CUDA wheel 通道和预发布版本策略
+  - 增删一个 JSON 对象即可调整矩阵构建的版本
+- 当前输出镜像：
+  - `wtyyy/isaaclab:3.0-beta2.patch1`
   - `wtyyy/isaaclab:2.3.2.post1`
 - 手动发布：
   - 触发 `workflow_dispatch`
-  - 填写 `isaaclab_version`
-  - 输出变为 `wtyyy/isaaclab:<isaaclab_version>`
+  - `isaaclab_version` 保持为 `all` 时构建全部已配置版本
+  - 填入 `versions.json` 中的 `image_tag` 或 `isaaclab_version` 时只构建对应条目
 
 运行工作流前需要配置以下仓库 secrets：
 
