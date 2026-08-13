@@ -1,5 +1,6 @@
 ## CHANGELOG
 
+- 2026.8.13: 新增[scripts/setup_clash.sh](./scripts/setup_clash.sh)自动安装clash-core并配置url自动更新订阅
 - 2026.4.8: 新增[scripts/codex_api_config.py](./scripts/codex_api_config.py)为codex配置api的配置文件
 - 2026.3.30:
     - 新增[isaaclab/Dockerfile](./docker/isaaclab/Dockerfile)
