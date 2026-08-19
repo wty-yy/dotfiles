@@ -37,8 +37,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh; \
 RUN set -eux; \
     uv venv "${UV_ENV_NAME}" --python "${PYTHON_VERSION}" --seed; \
     . "${UV_ENV_NAME}/bin/activate"; \
-    uv pip install --no-cache-dir "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url "https://download.pytorch.org/whl/${PYTORCH_CUDA}"; \
     uv pip install --no-cache-dir --prerelease="${UV_PRERELEASE}" --index-strategy unsafe-best-match "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" "omniverse-kit" --extra-index-url https://pypi.nvidia.com; \
+    uv pip install --no-cache-dir "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url "https://download.pytorch.org/whl/${PYTORCH_CUDA}"; \
     sed -i 's/mock_python_modules=True/mock_python_modules=False/g' "${DEFAULT_HOME}/${UV_ENV_NAME}/lib/python${PYTHON_VERSION}/site-packages/isaaclab/__main__.py"; \
     rm -rf "${DEFAULT_HOME}/.cache"; \
     chmod -R g+rwX "${DEFAULT_HOME}/${UV_ENV_NAME}" "${DEFAULT_HOME}/.local"
