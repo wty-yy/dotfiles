@@ -84,6 +84,12 @@ set incsearch
 " Unbind some useless/annoying default key bindings.
 nmap Q <Nop> " 'Q' in normal mode enters Ex mode. You almost never want this.
 
+" Use Ctrl+p to open fzf file finder
+nnoremap <C-p> :Files<CR>
+
+" Use - to quick open Ex mode
+nnoremap - :Ex<CR>
+
 " Disable audible bell because it's annoying.
 set noerrorbells visualbell t_vb=
 
@@ -104,6 +110,8 @@ Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 " Plug 'godlygeek/tabular'  " markdown Plug
 Plug 'preservim/vim-markdown'  " markdown Plug
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }  " fzf file finder
+Plug 'junegunn/fzf.vim'
 call plug#end()
 
 " 禁用markdown折叠功能
