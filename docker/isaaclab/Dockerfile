@@ -33,12 +33,23 @@ WORKDIR ${DEFAULT_HOME}
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh; \
     rm -rf "${DEFAULT_HOME}/.config"
 
-# Create uv env, install torch and isaaclab
+# Create uv env and install IsaacLab with its target PyTorch backend.
+# Isaac Sim's published metadata can request a newer default PyTorch wheel
+# (currently cu130).  Keep the versions selected by versions.json instead.
 RUN set -eux; \
     uv venv "${UV_ENV_NAME}" --python "${PYTHON_VERSION}" --seed; \
     . "${UV_ENV_NAME}/bin/activate"; \
-    uv pip install --no-cache-dir --prerelease="${UV_PRERELEASE}" --index-strategy unsafe-best-match "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" "omniverse-kit" --extra-index-url https://pypi.nvidia.com; \
-    uv pip install --no-cache-dir "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url "https://download.pytorch.org/whl/${PYTORCH_CUDA}"; \
+    TORCH_OVERRIDE_FILE="$(mktemp)"; \
+    printf 'torch==%s\ntorchvision==%s\ntorchaudio==%s\n' \
+        "${TORCH_VERSION}" "${TORCHVISION_VERSION}" "${TORCH_VERSION}" > "${TORCH_OVERRIDE_FILE}"; \
+    uv pip install --no-cache-dir \
+        --torch-backend "${PYTORCH_CUDA}" \
+        --overrides "${TORCH_OVERRIDE_FILE}" \
+        --prerelease="${UV_PRERELEASE}" \
+        --index-strategy unsafe-best-match \
+        "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" "omniverse-kit" \
+        --extra-index-url https://pypi.nvidia.com; \
+    rm -f "${TORCH_OVERRIDE_FILE}"; \
     sed -i 's/mock_python_modules=True/mock_python_modules=False/g' "${DEFAULT_HOME}/${UV_ENV_NAME}/lib/python${PYTHON_VERSION}/site-packages/isaaclab/__main__.py"; \
     rm -rf "${DEFAULT_HOME}/.cache"; \
     chmod -R g+rwX "${DEFAULT_HOME}/${UV_ENV_NAME}" "${DEFAULT_HOME}/.local"
