@@ -6,11 +6,11 @@ set autoread  " 自动加载
 set guicursor+=a:blinkon0  " 停止光标闪烁
 if &term =~ "xterm"  " 设置光标在不同模式下的形状
     " INSERT mode
-    let &t_SI = "\<Esc>[6 q" . "\<Esc>]12"
+    let &t_SI = "\<Esc>[6 q"
     " REPLACE mode
-    let &t_SR = "\<Esc>[3 q" . "\<Esc>]12"
+    let &t_SR = "\<Esc>[3 q"
     " NORMAL mode
-    let &t_EI = "\<Esc>[2 q" . "\<Esc>]12"
+    let &t_EI = "\<Esc>[2 q"
 endif
 " set guicursor+=a:block
 set ts=4  " 将tab转为4个空格
