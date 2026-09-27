@@ -4,3 +4,4 @@
 - [codex_vscode_extension_add_proxy.sh](./codex_vscode_extension_add_proxy.sh): Modify codex vscode extension to add proxy port.
 - [reencode_videos.py](./reencode_videos.py): Use Python control `ffmpeg` CLI to reencode videos.
 - [setup_clash.sh](./setup_clash.sh): Automatically install clash-core and configure url to auto update subscription.
+- [kitty](./kitty/): Install Kitty and configure Ubuntu GNOME menu entries, PATH, shortcuts, context menu, and personal settings.
