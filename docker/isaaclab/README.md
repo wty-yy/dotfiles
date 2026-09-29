@@ -16,9 +16,9 @@ This image extends `wtyyy/ubuntu:24.04` and installs the Isaac Lab environment i
 - `uv` and uv venv at `/home/user/isaaclab`
 - default Python packages:
   - Python `3.12`
-  - `torch==2.10.0`
-  - `torchvision==0.25.0`
-  - `isaaclab[isaacsim,all]==3.0.0b2.post1` (Isaac Lab 3.0 Beta 2 Patch 1)
+  - `torch==2.11.0`
+  - `torchvision==0.26.0`
+  - `isaaclab[isaacsim,all]==3.0.0rc1` (Isaac Lab 3.0 Early Access)
 - system runtime packages:
   - IsaacSim: `libgomp1`, `libglu1`
   - Render & DEBUG: `mesa-utils`, `vulkan-tools`, `x11-apps`
@@ -27,7 +27,13 @@ This image extends `wtyyy/ubuntu:24.04` and installs the Isaac Lab environment i
 
 ```bash
 cd docker
-docker build -t wtyyy/isaaclab:3.0-beta2.patch1 isaaclab
+docker build -t wtyyy/isaaclab:3.0-ea isaaclab
+
+# Rebuild the previous Beta 2 Patch 1 tag with its versions.json values
+docker build -t wtyyy/isaaclab:3.0-beta2.patch1 isaaclab \
+  --build-arg ISAACLAB_VERSION=3.0.0b2.post1 \
+  --build-arg TORCH_VERSION=2.10.0 \
+  --build-arg TORCHVISION_VERSION=0.25.0
 ```
 
 ## Run
@@ -60,7 +66,7 @@ docker run -it --name ${USER}-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:3.0-beta2.patch1 zsh
+  wtyyy/isaaclab:3.0-ea zsh
 ```
 
 - X11:
@@ -122,7 +128,7 @@ docker run -it --name user-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v /home/user/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v /home/user/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:3.0-beta2.patch1 zsh
+  wtyyy/isaaclab:3.0-ea zsh
 ```
 
 ## GitHub Actions
@@ -131,9 +137,10 @@ This repo includes dockerfile auto-building workflow [`.github/workflows/docker-
 
 - Trigger: push to `main` or `master` with changes under `docker/isaaclab/**`, `docker/ubuntu/**`
 - Version configuration: [`versions.json`](./versions.json)
-  - each entry keeps the image tag, Isaac Lab package version, Python, PyTorch, torchvision, CUDA wheel channel, and prerelease policy together
+  - each entry keeps the image tag, Isaac Lab package version, Python, PyTorch, torchvision, CUDA wheel channel, prerelease policy, and optional release uv overrides URL together
   - add or remove one JSON object to change the versions built by the matrix
 - Current output images:
+  - `wtyyy/isaaclab:3.0-ea`
   - `wtyyy/isaaclab:3.0-beta2.patch1`
   - `wtyyy/isaaclab:2.3.2.post1`
 - Manual release:

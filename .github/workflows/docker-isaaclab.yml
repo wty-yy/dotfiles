@@ -53,7 +53,8 @@ jobs:
                 .pytorch_cuda,
                 .uv_prerelease
               ] | all(type == "string" and length > 0)
-            )
+            ) and
+            all(.[]; (.uv_overrides_url // "") | type == "string")
           ' "$config" >/dev/null
 
           if [ "$requested_version" = "all" ]; then
@@ -145,5 +146,6 @@ jobs:
             TORCHVISION_VERSION=${{ matrix.torchvision_version }}
             PYTORCH_CUDA=${{ matrix.pytorch_cuda }}
             UV_PRERELEASE=${{ matrix.uv_prerelease }}
+            UV_OVERRIDES_URL=${{ matrix.uv_overrides_url }}
           tags: |
             wtyyy/isaaclab:${{ matrix.image_tag }}

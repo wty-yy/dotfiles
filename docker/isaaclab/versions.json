@@ -1,5 +1,15 @@
 [
   {
+    "image_tag": "3.0-ea",
+    "isaaclab_version": "3.0.0rc1",
+    "python_version": "3.12",
+    "torch_version": "2.11.0",
+    "torchvision_version": "0.26.0",
+    "pytorch_cuda": "cu128",
+    "uv_prerelease": "allow",
+    "uv_overrides_url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/v3.0.0-EA/tools/wheel_builder/uv-overrides.txt"
+  },
+  {
     "image_tag": "3.0-beta2.patch1",
     "isaaclab_version": "3.0.0b2.post1",
     "python_version": "3.12",
