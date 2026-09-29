@@ -15,6 +15,7 @@
 12. --speed: 指定音视频倍速，例如 2.0 表示 2 倍速，0.5 表示慢放
 13. --no_sound: 移除视频的音频流，输出无声视频
 14. --concat: 将去重后的多个视频按命令行输入顺序拼接为一个视频
+15. --tune: 指定 libx264/libx265 的编码调优，如 animation（适合仿真/动画类画面），不传则不启用
 """
 import argparse
 import re
@@ -274,6 +275,7 @@ def encode_video(
     speed=1.0,
     use_nvidia=False,
     no_sound=False,
+    tune='none',
 ):
     """
     调用 ffmpeg 对视频进行重新编码
@@ -340,6 +342,9 @@ def encode_video(
         cmd.extend([
             '-crf', str(crf),
         ])
+        if resolved_vcodec in ('libx264', 'libx265') and tune != 'none':
+            # tune=animation 对仿真/动画类大色块画面能明显提升压缩率。
+            cmd.extend(['-tune', tune])
 
     if video_filters:
         cmd.extend(['-vf', ','.join(video_filters)])
@@ -420,6 +425,7 @@ def concat_videos(
     speed=1.0,
     use_nvidia=False,
     no_sound=False,
+    tune='none',
 ):
     """
     按输入顺序拼接视频，并对拼接结果进行重新编码。
@@ -467,6 +473,8 @@ def concat_videos(
             cmd.extend(['-preset', 'p5', '-rc', 'vbr', '-cq', str(crf)])
         else:
             cmd.extend(['-crf', str(crf)])
+            if resolved_vcodec in ('libx264', 'libx265') and tune != 'none':
+                cmd.extend(['-tune', tune])
 
         if video_filters:
             cmd.extend(['-vf', ','.join(video_filters)])
@@ -539,6 +547,7 @@ def main():
     parser.add_argument("--end-time", type=parse_time_to_seconds, help="提取结束时间，支持 h:m:s、m:s 或 s，例如 00:02:10、2:10、130")
     parser.add_argument("--nvidia", action="store_true", help="使用 NVIDIA NVENC 进行硬件加速编码；libx264 会自动切换为 h264_nvenc，libx265 会自动切换为 hevc_nvenc")
     parser.add_argument("--speed", type=parse_speed_factor, default=1.0, help="音视频倍速，1.0 为原速，2.0 为 2 倍速，0.5 为慢放")
+    parser.add_argument("--tune", default="none", choices=["animation", "film", "grain", "stillimage", "fastdecode", "zerolatency", "psnr", "ssim", "none"], help="libx264/libx265 编码调优参数，不传则不启用；仿真/动画类画面可用 animation")
     parser.add_argument("--no_sound", action="store_true", help="移除视频的音频流，输出无声视频")
     parser.add_argument("--concat", action="store_true", help="将去重后的多个视频按命令行输入顺序拼接为一个视频")
 
@@ -575,6 +584,8 @@ def main():
         print(f"  - {search_desc}")
     print(f"目标格式: {', '.join(extensions)}")
     print(f"视频编码器: {resolved_vcodec}")
+    if resolved_vcodec in ("libx264", "libx265") and args.tune != "none":
+        print(f"编码调优(tune): {args.tune}")
     if args.fps is not None:
         print(f"目标帧率: {args.fps} fps")
     if args.resolution is not None:
@@ -633,6 +644,7 @@ def main():
             speed=args.speed,
             use_nvidia=args.nvidia,
             no_sound=args.no_sound,
+            tune=args.tune,
         )
         sys.exit(0 if succeeded else 1)
 
@@ -673,6 +685,7 @@ def main():
             speed=args.speed,
             use_nvidia=args.nvidia,
             no_sound=args.no_sound,
+            tune=args.tune,
         )
 
     print("\n" + "-" * 40)
