@@ -15,25 +15,22 @@ ARG ISAACLAB_VERSION=3.0.0rc1
 # Optional uv overrides published by the matching Isaac Lab release.
 ARG UV_OVERRIDES_URL=
 
-ENV DEBIAN_FRONTEND=noninteractive
 ENV HOME=${DEFAULT_HOME}
 ENV PATH=${DEFAULT_HOME}/${UV_ENV_NAME}/bin:${DEFAULT_HOME}/.local/bin:${PATH}
 
 # Install runtime dependencies for isaaclab
 USER root
 RUN set -eux; \
-    sudo apt-get update; \
-    sudo apt-get install -y --no-install-recommends libgomp1 libglu1 mesa-utils vulkan-tools x11-apps; \
-    sudo apt-get clean; \
-    sudo rm -rf /var/lib/apt/lists/*
+    apt-get update; \
+    apt-get install -y --no-install-recommends libgomp1 libglu1 mesa-utils vulkan-tools x11-apps; \
+    rm -rf /var/lib/apt/lists/*
 
 # Install python env & pkg by INITIAL_USER, then switch to DEFAULT_USER
 USER ${INITIAL_USER}
 WORKDIR ${DEFAULT_HOME}
 
 # Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh; \
-    rm -rf "${DEFAULT_HOME}/.config"
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
 
 # Create uv env and install IsaacLab with its target PyTorch backend.
 # Isaac Sim's published metadata can request a different default PyTorch wheel.
@@ -53,27 +50,18 @@ RUN set -eux; \
         --overrides "${OVERRIDE_FILE}" \
         --prerelease="${UV_PRERELEASE}" \
         --index-strategy unsafe-best-match \
-        "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" "omniverse-kit" \
+        "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" \
         --extra-index-url https://pypi.nvidia.com; \
     rm -f "${OVERRIDE_FILE}"; \
-    sed -i 's/mock_python_modules=True/mock_python_modules=False/g' "${DEFAULT_HOME}/${UV_ENV_NAME}/lib/python${PYTHON_VERSION}/site-packages/isaaclab/__main__.py"; \
     rm -rf "${DEFAULT_HOME}/.cache"; \
     chmod -R g+rwX "${DEFAULT_HOME}/${UV_ENV_NAME}" "${DEFAULT_HOME}/.local"
 
-RUN set -eux; \
-    ACTIVATE_BLOCK_START="# >>> isaaclab auto-activate >>>"; \
-    ACTIVATE_BLOCK_END="# <<< isaaclab auto-activate <<<"; \
-    if ! grep -Fq "${ACTIVATE_BLOCK_START}" "${DEFAULT_HOME}/.zshrc"; then \
-        printf '\n%s\nif [ -f "%s/%s/bin/activate" ] && [ -z "${VIRTUAL_ENV:-}" ]; then\n  source "%s/%s/bin/activate"\nfi\n%s\n' \
-            "${ACTIVATE_BLOCK_START}" "${DEFAULT_HOME}" "${UV_ENV_NAME}" "${DEFAULT_HOME}" "${UV_ENV_NAME}" "${ACTIVATE_BLOCK_END}" >> "${DEFAULT_HOME}/.zshrc"; \
-    fi
-
-RUN set -eux; \
-    LD_PRELOAD_BLOCK="export LD_PRELOAD=\"${DEFAULT_HOME}/${UV_ENV_NAME}/lib/python${PYTHON_VERSION}/site-packages/omni/libcarb.so:\$LD_PRELOAD\""; \
-    if ! grep -Fq "${LD_PRELOAD_BLOCK}" "${DEFAULT_HOME}/.zshrc"; then \
-        printf '\n%s\n' "${LD_PRELOAD_BLOCK}" >> "${DEFAULT_HOME}/.zshrc"; \
-    fi
+RUN printf '%s\n' \
+    '' \
+    '# >>> isaaclab auto-activate >>>' \
+    "if [ -f \"${DEFAULT_HOME}/${UV_ENV_NAME}/bin/activate\" ] && [ -z \"\${VIRTUAL_ENV:-}\" ]; then" \
+    "  source \"${DEFAULT_HOME}/${UV_ENV_NAME}/bin/activate\"" \
+    'fi' \
+    '# <<< isaaclab auto-activate <<<' >> "${DEFAULT_HOME}/.zshrc"
 
 USER ${DEFAULT_USER}
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["/usr/bin/zsh"]

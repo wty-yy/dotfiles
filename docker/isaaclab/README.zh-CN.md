@@ -25,15 +25,11 @@
 
 ## 构建
 
+构建配置面向 Isaac Lab 3.0 Early Access 及后续版本。
+
 ```bash
 cd docker
 docker build -t wtyyy/isaaclab:3.0-ea isaaclab
-
-# 使用 versions.json 中的版本参数重建上一个 Beta 2 Patch 1 标签
-docker build -t wtyyy/isaaclab:3.0-beta2.patch1 isaaclab \
-  --build-arg ISAACLAB_VERSION=3.0.0b2.post1 \
-  --build-arg TORCH_VERSION=2.10.0 \
-  --build-arg TORCHVISION_VERSION=0.25.0
 ```
 
 ## 运行
@@ -142,8 +138,6 @@ docker run -it --name user-isaaclab \
   - 增删一个 JSON 对象即可调整矩阵构建的版本
 - 当前输出镜像：
   - `wtyyy/isaaclab:3.0-ea`
-  - `wtyyy/isaaclab:3.0-beta2.patch1`
-  - `wtyyy/isaaclab:2.3.2.post1`
 - 手动发布：
   - 触发 `workflow_dispatch`
   - `isaaclab_version` 保持为 `all` 时构建全部已配置版本

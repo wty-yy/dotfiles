@@ -25,15 +25,11 @@ This image extends `wtyyy/ubuntu:24.04` and installs the Isaac Lab environment i
 
 ## Build
 
+The build configuration targets Isaac Lab 3.0 Early Access and later releases.
+
 ```bash
 cd docker
 docker build -t wtyyy/isaaclab:3.0-ea isaaclab
-
-# Rebuild the previous Beta 2 Patch 1 tag with its versions.json values
-docker build -t wtyyy/isaaclab:3.0-beta2.patch1 isaaclab \
-  --build-arg ISAACLAB_VERSION=3.0.0b2.post1 \
-  --build-arg TORCH_VERSION=2.10.0 \
-  --build-arg TORCHVISION_VERSION=0.25.0
 ```
 
 ## Run
@@ -141,8 +137,6 @@ This repo includes dockerfile auto-building workflow [`.github/workflows/docker-
   - add or remove one JSON object to change the versions built by the matrix
 - Current output images:
   - `wtyyy/isaaclab:3.0-ea`
-  - `wtyyy/isaaclab:3.0-beta2.patch1`
-  - `wtyyy/isaaclab:2.3.2.post1`
 - Manual release:
   - trigger `workflow_dispatch`
   - leave `isaaclab_version` as `all` to build every configured version
