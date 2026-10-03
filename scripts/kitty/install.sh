@@ -9,15 +9,21 @@ STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 KITTY_APP="$HOME/.local/kitty.app"
 BIN_DIR="$HOME/.local/bin"
 FONT_FILE="$SCRIPT_DIR/../../fonts/Caskaydia Cove Nerd Font Complete.ttf"
+FONT_VERSION=3.5.1
+FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v$FONT_VERSION/CascadiaCode.zip"
 PLUGIN_VERSION=0.8.3
 PLUGIN_SCHEMA=com.github.stunkymonkey.nautilus-open-any-terminal
 STEP_IDS=(download desktop path shortcut context config)
 STEP_LABELS=('Download / update the latest stable Kitty release' 'Register menu icons and launchers' 'Add kitty and kitten to PATH' 'Set Ctrl+Alt+T and the default terminal' 'Add the Open Kitty Here context menu' 'Replace Kitty config and install the bundled font (with backup)')
+UNINSTALL_LABEL='Uninstall Kitty and revert the changes made by this script'
 SELECTED=(1 1 1 1 1 1)
 MODE=tui
 DRY_RUN=0
 WORK_DIR=''
 BACKUP_DIR=''
+BACKUP_DIRS=()
+UNINSTALL=0
+ASSUME_YES=0
 CURRENT_STEP=preflight
 
 log() { printf '\n%s\n' "$*"; }
@@ -29,10 +35,14 @@ trap 'printf "\nStep %s failed at line %s. Resolve the error and rerun the scrip
 usage() {
     cat <<'EOF'
 Usage: ./install.sh [--all | --steps download,desktop,path,shortcut,context,config] [--dry-run]
+       ./install.sh --uninstall [--yes]
 
 The TUI selects all six steps by default. Toggle by number; Enter starts; q exits.
+Option 7 selects uninstall instead of the installation steps.
   --all          Select all steps without opening the selection screen
   --steps LIST   Run only the listed steps in dependency order
+  --uninstall    Remove Kitty and revert this script's changes
+  --yes, -y      Skip the uninstall confirmation prompt
   --dry-run      Preview the plan without downloads, installation, or changes
   -h, --help     Show this help
 
@@ -43,8 +53,11 @@ EOF
 parse_args() {
     while (($#)); do
         case "$1" in
-            --all) MODE=all; SELECTED=(1 1 1 1 1 1) ;;
+            --all)
+                ((UNINSTALL)) && die '--uninstall cannot be combined with --all or --steps'
+                MODE=all; SELECTED=(1 1 1 1 1 1) ;;
             --steps)
+                ((UNINSTALL)) && die '--uninstall cannot be combined with --all or --steps'
                 (($# >= 2)) && [[ -n "$2" ]] || die '--steps requires a comma-separated list of step names'
                 MODE=steps; SELECTED=(0 0 0 0 0 0)
                 local items item index found
@@ -59,12 +72,18 @@ parse_args() {
                     ((found)) || die "Unknown step: $item"
                 done
                 shift ;;
+            --uninstall)
+                [[ "$MODE" == tui ]] || die '--uninstall cannot be combined with --all or --steps'
+                UNINSTALL=1; MODE=uninstall ;;
+            --yes|-y) ASSUME_YES=1 ;;
             --dry-run) DRY_RUN=1 ;;
             -h|--help) usage; exit 0 ;;
             *) die "Unknown argument: $1" ;;
         esac
         shift
     done
+    ((ASSUME_YES && !UNINSTALL)) && die '--yes is only valid with --uninstall'
+    return 0
 }
 
 select_steps() {
@@ -79,13 +98,16 @@ select_steps() {
             mark=' '; ((SELECTED[index])) && mark=x
             printf '  %s. [%s] %s\n' "$((index + 1))" "$mark" "${STEP_LABELS[index]}"
         done
-        printf '\n  1-6 toggle | a select all | n clear all | Enter start | q quit\n'
+        mark=' '; ((UNINSTALL)) && mark=x
+        printf '  %s. [%s] %s\n' "$((${#STEP_IDS[@]} + 1))" "$mark" "$UNINSTALL_LABEL"
+        printf '\n  1-7 toggle | a select all | n clear all | Enter start | q quit\n'
         printf '  Existing files are backed up; dependencies follow the selected steps.\n\n> '
         IFS= read -r input || exit 0
         case "$input" in
-            [1-6]) index=$((input - 1)); SELECTED[index]=$((1 - SELECTED[index])) ;;
-            a|A) SELECTED=(1 1 1 1 1 1) ;;
-            n|N) SELECTED=(0 0 0 0 0 0) ;;
+            [1-6]) index=$((input - 1)); SELECTED[index]=$((1 - SELECTED[index])); UNINSTALL=0 ;;
+            7) UNINSTALL=$((1 - UNINSTALL)); ((UNINSTALL)) && SELECTED=(0 0 0 0 0 0) ;;
+            a|A) SELECTED=(1 1 1 1 1 1); UNINSTALL=0 ;;
+            n|N) SELECTED=(0 0 0 0 0 0); UNINSTALL=0 ;;
             '') return ;;
             q|Q) exit 0 ;;
         esac
@@ -152,7 +174,7 @@ preflight() {
         gsettings get org.gnome.desktop.default-applications.terminal exec >/dev/null
     fi
     if ((SELECTED[5])); then
-        [[ -f "$SCRIPT_DIR/kitty.conf" && -f "$FONT_FILE" ]] || die 'Missing kitty.conf or the repository font. Keep the complete dotfiles directory structure.'
+        [[ -f "$SCRIPT_DIR/kitty.conf" ]] || die 'Missing kitty.conf. Keep it next to install.sh.'
     fi
 }
 
@@ -162,7 +184,10 @@ install_dependencies() {
     ((SELECTED[1])) && packages+=(python3 desktop-file-utils)
     ((SELECTED[3])) && packages+=(libglib2.0-bin)
     ((SELECTED[4])) && packages+=(python3-nautilus gir1.2-gtk-4.0 libglib2.0-bin gettext make)
-    ((SELECTED[5])) && packages+=(fontconfig)
+    if ((SELECTED[5])); then
+        packages+=(fontconfig)
+        [[ -f "$FONT_FILE" ]] || packages+=(curl ca-certificates unzip)
+    fi
     for package in "${packages[@]}"; do
         if [[ "$(dpkg-query -W -f='${Status}' "$package" 2>/dev/null || true)" != 'install ok installed' ]]; then
             missing+=("$package")
@@ -278,13 +303,236 @@ EOF
 
 config() {
     install_file "$SCRIPT_DIR/kitty.conf" "$CONFIG_HOME/kitty/kitty.conf"
-    install_file "$FONT_FILE" "$DATA_HOME/fonts/$(basename -- "$FONT_FILE")"
+    if [[ -f "$FONT_FILE" ]]; then
+        install_file "$FONT_FILE" "$DATA_HOME/fonts/$(basename -- "$FONT_FILE")"
+    else
+        log "Repository font not found. Downloading CaskaydiaCove Nerd Font v$FONT_VERSION."
+        curl -fL --retry 3 "$FONT_URL" -o "$WORK_DIR/font.zip"
+        unzip -qo "$WORK_DIR/font.zip" 'CaskaydiaCoveNerdFont-*.ttf' -d "$WORK_DIR/font"
+        local font
+        for font in "$WORK_DIR"/font/CaskaydiaCoveNerdFont-*.ttf; do
+            install_file "$font" "$DATA_HOME/fonts/$(basename -- "$font")"
+        done
+    fi
     fc-cache -f "$DATA_HOME/fonts"
+}
+
+load_backup_dirs() {
+    local dir
+    for dir in "$STATE_HOME/kitty-setup/backups"/*/; do
+        if [[ -d "$dir" ]]; then
+            BACKUP_DIRS+=("$dir")
+        fi
+    done
+}
+
+find_backup_entry() {
+    local relative="$1" dir found=''
+    for dir in "${BACKUP_DIRS[@]}"; do
+        if [[ -e "$dir$relative" || -L "$dir$relative" ]]; then
+            found="$dir$relative"
+        fi
+    done
+    printf '%s' "$found"
+}
+
+restore_or_remove() {
+    local target="$1" entry mode
+    entry="$(find_backup_entry "files$target")"
+    if [[ -n "$entry" ]]; then
+        backup_file "$target"
+        mode="$(stat -c %a -- "$entry")"
+        install -Dm "$mode" -- "$entry" "$target"
+        printf 'Restored %s\n' "$target"
+    elif [[ -e "$target" || -L "$target" ]]; then
+        backup_file "$target"
+        rm -f -- "$target"
+        printf 'Removed %s\n' "$target"
+    fi
+}
+
+remove_bin_link() {
+    local link="$1" expected="$2" entry
+    if [[ -L "$link" && "$(readlink -- "$link")" == "$expected" ]]; then
+        entry="$(find_backup_entry "files$link")"
+        backup_file "$link"
+        rm -f -- "$link"
+        if [[ -n "$entry" ]]; then
+            cp -a -- "$entry" "$link"
+            printf 'Restored %s\n' "$link"
+        else
+            printf 'Removed %s\n' "$link"
+        fi
+    fi
+}
+
+remove_shell_path() {
+    local rc="$1" snippet tmp
+    [[ -f "$rc" ]] || return 0
+    snippet='case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
+    grep -qF -- "$snippet" "$rc" || return 0
+    backup_file "$rc"
+    tmp="$(mktemp)"
+    grep -vxF -e "$snippet" -e '# Kitty setup: user executables' -- "$rc" > "$tmp" || true
+    install -m "$(stat -c %a -- "$rc")" -- "$tmp" "$rc"
+    rm -f -- "$tmp"
+    printf 'Cleaned PATH setup in %s\n' "$rc"
+}
+
+restore_gsettings() {
+    local schema="$1" entry
+    entry="$(find_backup_entry "$schema.txt")"
+    if [[ -n "$entry" ]]; then
+        while read -r name key value; do
+            gsettings set "$name" "$key" "$value" || true
+        done < "$entry"
+        printf 'Restored GNOME settings: %s\n' "$schema"
+        return 0
+    fi
+    case "$schema" in
+        org.gnome.desktop.default-applications.terminal)
+            gsettings reset "$schema" exec || true
+            gsettings reset "$schema" exec-arg || true ;;
+        org.gnome.settings-daemon.plugins.media-keys)
+            gsettings reset "$schema" terminal || true ;;
+    esac
+    return 0
+}
+
+uninstall_context() {
+    local schemas="$DATA_HOME/glib-2.0/schemas" mo
+    if [[ -f "$schemas/$PLUGIN_SCHEMA.gschema.xml" ]] && [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] && command -v gsettings >/dev/null; then
+        GSETTINGS_SCHEMA_DIR="$schemas" gsettings reset-recursively "$PLUGIN_SCHEMA" 2>/dev/null || true
+    fi
+    restore_or_remove "$DATA_HOME/nautilus-python/extensions/nautilus_open_any_terminal.py"
+    restore_or_remove "$schemas/$PLUGIN_SCHEMA.gschema.xml"
+    for mo in "$DATA_HOME"/locale/*/LC_MESSAGES/nautilus-open-any-terminal.mo; do
+        if [[ -e "$mo" ]]; then
+            restore_or_remove "$mo"
+        fi
+    done
+    if [[ -d "$schemas" ]] && command -v glib-compile-schemas >/dev/null; then
+        glib-compile-schemas "$schemas"
+    fi
+    rmdir -- "$DATA_HOME/nautilus-python/extensions" "$DATA_HOME/nautilus-python" 2>/dev/null || true
+    printf 'Context menu integration removed.\n'
+}
+
+uninstall_shortcut() {
+    local file="$CONFIG_HOME/xdg-terminals.list" tmp entry previous=''
+    if [[ -f "$file" ]]; then
+        backup_file "$file"
+        tmp="$(mktemp)"
+        grep -vxF 'kitty.desktop' -- "$file" > "$tmp" || true
+        if grep -q '[^[:space:]]' -- "$tmp"; then
+            install -m "$(stat -c %a -- "$file")" -- "$tmp" "$file"
+        else
+            rm -f -- "$file"
+        fi
+        rm -f -- "$tmp"
+    fi
+    entry="$(find_backup_entry 'x-terminal-emulator.txt')"
+    if [[ -n "$entry" ]]; then
+        previous="$(sed -n 's/^Value: //p' "$entry" | head -n 1)"
+    fi
+    sudo update-alternatives --remove x-terminal-emulator "$KITTY_APP/bin/kitty" || true
+    if [[ -n "$previous" && "$previous" != "$KITTY_APP/bin/kitty" && -x "$previous" ]]; then
+        sudo update-alternatives --set x-terminal-emulator "$previous"
+    fi
+    if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] && command -v gsettings >/dev/null; then
+        restore_gsettings org.gnome.desktop.default-applications.terminal
+        restore_gsettings org.gnome.settings-daemon.plugins.media-keys
+    else
+        printf 'No desktop session detected; skipped GNOME terminal settings.\n'
+    fi
+}
+
+uninstall_path() {
+    local executable rc
+    for executable in kitty kitten; do
+        remove_bin_link "$BIN_DIR/$executable" "$KITTY_APP/bin/$executable"
+    done
+    for rc in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zprofile" "$HOME/.zshrc"; do
+        remove_shell_path "$rc"
+    done
+}
+
+uninstall_desktop() {
+    local filename
+    for filename in kitty.desktop kitty-open.desktop; do
+        restore_or_remove "$DATA_HOME/applications/$filename"
+    done
+    if command -v update-desktop-database >/dev/null; then
+        update-desktop-database "$DATA_HOME/applications" 2>/dev/null || true
+    fi
+}
+
+uninstall_config() {
+    local bundled font
+    restore_or_remove "$CONFIG_HOME/kitty/kitty.conf"
+    rmdir -- "$CONFIG_HOME/kitty" 2>/dev/null || true
+    bundled="$DATA_HOME/fonts/$(basename -- "$FONT_FILE")"
+    restore_or_remove "$bundled"
+    for font in "$DATA_HOME"/fonts/CaskaydiaCoveNerdFont-*.ttf; do
+        if [[ -e "$font" ]]; then
+            restore_or_remove "$font"
+        fi
+    done
+    if [[ -d "$DATA_HOME/fonts" ]] && command -v fc-cache >/dev/null; then
+        fc-cache -f "$DATA_HOME/fonts" >/dev/null
+    fi
+}
+
+uninstall_download() {
+    if [[ -d "$KITTY_APP" ]]; then
+        rm -rf -- "$KITTY_APP"
+        printf 'Removed %s\n' "$KITTY_APP"
+    fi
+}
+
+preflight_uninstall() {
+    ((EUID != 0)) || die 'Run as a regular desktop user; the script uses sudo when needed.'
+    [[ "$(uname -s)" == Linux && -f /etc/os-release ]] || die 'Only Ubuntu GNOME is supported.'
+    # shellcheck disable=SC1091
+    source /etc/os-release
+    [[ "$ID" == ubuntu ]] || die 'This script requires Ubuntu GNOME.'
+}
+
+confirm_uninstall() {
+    local answer
+    printf "This removes Kitty and reverts this script's changes. Type yes to continue: "
+    IFS= read -r answer || true
+    [[ "$answer" == yes ]] || die 'Uninstall cancelled.'
+}
+
+uninstall() {
+    CURRENT_STEP=uninstall
+    load_backup_dirs
+    uninstall_context
+    uninstall_shortcut
+    uninstall_path
+    uninstall_desktop
+    uninstall_config
+    uninstall_download
+    log 'Uninstall complete. Log out and back in to finish removing the desktop integration.'
+    [[ -z "$BACKUP_DIR" ]] || printf 'Safety backup of removed files: %s\n' "$BACKUP_DIR"
+}
+
+uninstall_main() {
+    if ((DRY_RUN)); then
+        printf '  [uninstall] %s\n' "$UNINSTALL_LABEL"
+        log 'Preview complete. No installation or configuration changes were made.'
+        return 0
+    fi
+    preflight_uninstall
+    ((ASSUME_YES)) || confirm_uninstall
+    uninstall
 }
 
 main() {
     parse_args "$@"
     if [[ "$MODE" == tui ]] && ((!DRY_RUN)); then select_steps; fi
+    if ((UNINSTALL)); then uninstall_main; return; fi
     local index count=0 total=0
     for index in "${!STEP_IDS[@]}"; do
         if ((SELECTED[index])); then
