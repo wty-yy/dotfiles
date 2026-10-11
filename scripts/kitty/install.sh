@@ -25,6 +25,7 @@ BACKUP_DIRS=()
 UNINSTALL=0
 ASSUME_YES=0
 CURRENT_STEP=preflight
+KITTY_ARCHIVE=''
 
 log() { printf '\n%s\n' "$*"; }
 die() { printf '\nError: %s\n' "$*" >&2; exit 1; }
@@ -35,12 +36,14 @@ trap 'printf "\nStep %s failed at line %s. Resolve the error and rerun the scrip
 usage() {
     cat <<'EOF'
 Usage: ./install.sh [--all | --steps download,desktop,path,shortcut,context,config] [--dry-run]
+       ./install.sh --all --archive /path/to/kitty-VERSION-ARCH.txz
        ./install.sh --uninstall [--yes]
 
 The TUI selects all six steps by default. Toggle by number; Enter starts; q exits.
 Option 7 selects uninstall instead of the installation steps.
   --all          Select all steps without opening the selection screen
   --steps LIST   Run only the listed steps in dependency order
+  --archive FILE Install a local Kitty .txz instead of downloading (requires download step)
   --uninstall    Remove Kitty and revert this script's changes
   --yes, -y      Skip the uninstall confirmation prompt
   --dry-run      Preview the plan without downloads, installation, or changes
@@ -75,6 +78,9 @@ parse_args() {
             --uninstall)
                 [[ "$MODE" == tui ]] || die '--uninstall cannot be combined with --all or --steps'
                 UNINSTALL=1; MODE=uninstall ;;
+            --archive)
+                (($# >= 2)) && [[ -n "$2" && "$2" != --* ]] || die '--archive requires a local .txz file'
+                KITTY_ARCHIVE="$2"; shift ;;
             --yes|-y) ASSUME_YES=1 ;;
             --dry-run) DRY_RUN=1 ;;
             -h|--help) usage; exit 0 ;;
@@ -201,9 +207,58 @@ install_dependencies() {
 }
 
 download() {
-    curl -fL --retry 3 https://sw.kovidgoyal.net/kitty/installer.sh -o "$WORK_DIR/installer.sh"
-    sh "$WORK_DIR/installer.sh" "dest=$HOME/.local" launch=n
-    "$KITTY_APP/bin/kitty" --version
+    local archive="$KITTY_ARCHIVE" arch version filename cache url staged previous=''
+    if [[ -z "$archive" ]]; then
+        case "$(uname -m)" in
+            x86_64|amd64) arch=x86_64 ;;
+            aarch64|armv8*) arch=arm64 ;;
+            *) die "No Kitty binary available for architecture $(uname -m)" ;;
+        esac
+        if ! curl -fL --connect-timeout 15 --max-time 60 --retry 3 --retry-all-errors \
+            https://sw.kovidgoyal.net/kitty/current-version.txt -o "$WORK_DIR/version.txt"; then
+            die 'Could not fetch the latest version. To install offline, rerun with --archive /path/to/kitty-VERSION-ARCH.txz.'
+        fi
+        version="$(tr -d '\r\n' < "$WORK_DIR/version.txt")"
+        [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Invalid Kitty release version: $version"
+        filename="kitty-$version-$arch.txz"
+        cache="${XDG_CACHE_HOME:-$HOME/.cache}/kitty-setup"
+        mkdir -p -- "$cache"
+        archive="$cache/$filename"
+        url="https://github.com/kovidgoyal/kitty/releases/download/v$version/$filename"
+        if [[ ! -f "$archive" ]]; then
+            log "Downloading $url (partial downloads are kept in $cache)"
+            if ! curl -fL --connect-timeout 15 --max-time 1800 --speed-limit 1024 --speed-time 60 \
+                --retry 3 --retry-all-errors --continue-at - "$url" -o "$archive.part"; then
+                die "Download failed: $url
+Rerun to resume, or download the file in your browser and rerun with --archive /path/to/$filename.
+If the server refuses resume, remove $archive.part and retry."
+            fi
+            if ! xz -t -- "$archive.part"; then
+                die "Downloaded archive is incomplete or corrupt: $archive.part. Remove it and retry, or use --archive."
+            fi
+            mv -- "$archive.part" "$archive"
+        fi
+    fi
+    [[ -f "$archive" && -r "$archive" ]] || die "Cannot read local archive: $archive"
+    log "Installing from $archive"
+    xz -t -- "$archive" || die "Archive is incomplete or corrupt: $archive. Download it again."
+    staged="$WORK_DIR/kitty.app"
+    mkdir -p -- "$staged"
+    tar --extract --xz --no-same-owner --file "$archive" --directory "$staged"
+    [[ -x "$staged/bin/kitty" && -x "$staged/bin/kitten" \
+        && -f "$staged/share/applications/kitty.desktop" \
+        && -f "$staged/share/applications/kitty-open.desktop" ]] || die 'The archive does not contain a complete Kitty installation.'
+    "$staged/bin/kitty" --version || die 'The Kitty binary cannot run on this system; check the archive architecture.'
+    mkdir -p -- "$(dirname -- "$KITTY_APP")"
+    if [[ -e "$KITTY_APP" || -L "$KITTY_APP" ]]; then
+        ensure_backup_dir
+        previous="$BACKUP_DIR/kitty.app"
+        mv -- "$KITTY_APP" "$previous"
+    fi
+    if ! mv -- "$staged" "$KITTY_APP"; then
+        [[ -z "$previous" ]] || mv -- "$previous" "$KITTY_APP"
+        die 'Could not install Kitty; the previous installation was restored if present.'
+    fi
 }
 
 desktop() {
@@ -532,6 +587,11 @@ uninstall_main() {
 main() {
     parse_args "$@"
     if [[ "$MODE" == tui ]] && ((!DRY_RUN)); then select_steps; fi
+    if [[ -n "$KITTY_ARCHIVE" ]]; then
+        ((!UNINSTALL && SELECTED[0])) || die '--archive requires the download step and cannot be combined with --uninstall'
+        [[ -f "$KITTY_ARCHIVE" && -r "$KITTY_ARCHIVE" ]] || die "Cannot read local archive: $KITTY_ARCHIVE"
+        printf '  Local archive: %s\n' "$KITTY_ARCHIVE"
+    fi
     if ((UNINSTALL)); then uninstall_main; return; fi
     local index count=0 total=0
     for index in "${!STEP_IDS[@]}"; do
