@@ -1,5 +1,9 @@
 ## CHANGELOG
 
+- 2026.10.14: 新增 [scripts/kitty/install-macos.sh](./scripts/kitty/install-macos.sh)，支持 macOS 安装和更新 Kitty、配置命令行 PATH、安装配置与字体、覆盖前备份及 `--dry-run` 预览
+- 2026.10.14: 更新 [scripts/auto_remote_config](./scripts/auto_remote_config/)，改用带 `KeyEventDelay` 补丁的 TigerVNC `1.16.2`，新增多屏服务启动模板、进程自动重试及中英文使用说明
+- 2026.10.14: 更新 [scripts/reencode_videos.py](./scripts/reencode_videos.py)，新增 `--rotation` 支持逆时针旋转 `0/90/180/270` 度，并在缩放和裁剪前应用旋转
+- 2026.10.14: 新增 [scripts/tinyimg/tinyimg.py](./scripts/tinyimg/tinyimg.py)，通过 TinyPNG API 批量压缩图片，支持并行处理、递归扫描、原图备份、输出后缀、API 密钥保存及用量查询
 - 2026.8.13: 新增[scripts/setup_clash.sh](./scripts/setup_clash.sh)自动安装clash-core并配置url自动更新订阅
 - 2026.4.8: 新增[scripts/codex_api_config.py](./scripts/codex_api_config.py)为codex配置api的配置文件
 - 2026.3.30:

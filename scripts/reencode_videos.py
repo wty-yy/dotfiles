@@ -16,6 +16,7 @@
 13. --no_sound: 移除视频的音频流，输出无声视频
 14. --concat: 将去重后的多个视频按命令行输入顺序拼接为一个视频
 15. --tune: 指定 libx264/libx265 的编码调优，如 animation（适合仿真/动画类画面），不传则不启用
+16. --rotation: 逆时针旋转角度，支持 0、90、180、270；仅传参数时默认 90，不传则不旋转
 """
 import argparse
 import re
@@ -23,6 +24,14 @@ import subprocess
 import tempfile
 from pathlib import Path
 import sys
+
+
+ROTATION_FILTERS = {
+    0: (),
+    90: ("transpose=cclock",),
+    180: ("hflip", "vflip"),
+    270: ("transpose=clock",),
+}
 
 
 def normalize_extension(extension):
@@ -276,6 +285,7 @@ def encode_video(
     use_nvidia=False,
     no_sound=False,
     tune='none',
+    rotation=0,
 ):
     """
     调用 ffmpeg 对视频进行重新编码
@@ -284,11 +294,14 @@ def encode_video(
     # -y: 直接覆盖已存在的输出文件
     # -c:v: 视频编码器
     # -crf: 恒定速率因子 (0-51，越小质量越高，23 是 x264 的默认值)
-    # -vf: 根据需要设置帧率和分辨率滤镜
+    # -vf: 根据需要设置旋转、帧率、分辨率和裁剪滤镜
     # -af: 在倍速场景下同步处理音频
     resolved_vcodec = resolve_video_codec(vcodec, use_nvidia)
 
-    video_filters = []
+    if rotation not in ROTATION_FILTERS:
+        raise ValueError("旋转角度仅支持 0、90、180、270（逆时针）。")
+    # 先旋转，再缩放和裁剪；裁剪坐标以旋转、缩放后的画面为准。
+    video_filters = list(ROTATION_FILTERS[rotation])
     audio_filters = []
 
     if speed != 1.0:
@@ -426,12 +439,16 @@ def concat_videos(
     use_nvidia=False,
     no_sound=False,
     tune='none',
+    rotation=0,
 ):
     """
     按输入顺序拼接视频，并对拼接结果进行重新编码。
     """
     resolved_vcodec = resolve_video_codec(vcodec, use_nvidia)
-    video_filters = []
+    if rotation not in ROTATION_FILTERS:
+        raise ValueError("旋转角度仅支持 0、90、180、270（逆时针）。")
+    # 先旋转，再缩放和裁剪；裁剪坐标以旋转、缩放后的画面为准。
+    video_filters = list(ROTATION_FILTERS[rotation])
     audio_filters = []
 
     if speed != 1.0:
@@ -541,6 +558,7 @@ def main():
     parser.add_argument("--resolution", type=int, choices=[1080, 720, 360], help="输出分辨率短边，仅支持 1080、720、360；横向按高度缩放，纵向按宽度缩放 (默认原分辨率)")
     parser.add_argument("--output-ext", default="mp4", help="输出文件扩展名，例如 mp4 或 .mkv (默认保持原扩展名)")
     parser.add_argument("--suffix", default="_encoded", help="输出文件名的追加后缀 (默认: _encoded)")
+    parser.add_argument("--rotation", type=int, nargs='?', const=90, default=0, choices=[0, 90, 180, 270], help="逆时针旋转角度；仅传 --rotation 时默认 90 度，不传则不旋转。先旋转再缩放和裁剪")
     parser.add_argument("--crop-top-left", nargs=2, type=int, metavar=("X1", "Y1"), help="裁剪区域左上角坐标，例如: --crop-top-left 100 50")
     parser.add_argument("--crop-bottom-right", nargs=2, type=int, metavar=("X2", "Y2"), help="裁剪区域右下角坐标，例如: --crop-bottom-right 1820 1030")
     parser.add_argument("--start-time", type=parse_time_to_seconds, help="提取开始时间，支持 h:m:s、m:s 或 s，例如 00:01:30、1:30、90")
@@ -584,6 +602,8 @@ def main():
         print(f"  - {search_desc}")
     print(f"目标格式: {', '.join(extensions)}")
     print(f"视频编码器: {resolved_vcodec}")
+    if args.rotation:
+        print(f"旋转: 逆时针 {args.rotation} 度")
     if resolved_vcodec in ("libx264", "libx265") and args.tune != "none":
         print(f"编码调优(tune): {args.tune}")
     if args.fps is not None:
@@ -645,6 +665,7 @@ def main():
             use_nvidia=args.nvidia,
             no_sound=args.no_sound,
             tune=args.tune,
+            rotation=args.rotation,
         )
         sys.exit(0 if succeeded else 1)
 
@@ -686,6 +707,7 @@ def main():
             use_nvidia=args.nvidia,
             no_sound=args.no_sound,
             tune=args.tune,
+            rotation=args.rotation,
         )
 
     print("\n" + "-" * 40)

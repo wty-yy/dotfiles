@@ -1,10 +1,25 @@
 #!/usr/bin/env python3
-"""
-Useage:
-sudo python3 auto_remote_config.py \
-    --zt_network_id <your_id> \
-    --vnc_password <your_password> \
-    --proxy 127.0.0.1:7890
+"""Configure SSH, TigerVNC desktop sharing, noVNC, and optional ZeroTier.
+
+Overview:
+    Build TigerVNC with the bundled input-pacing patch and create one shared
+    X11 screen endpoint per monitor, managed by multivnc.service.
+
+Quick Start:
+    sudo python3 auto_remote_config.py --vnc_password <your_password>
+
+Full Command:
+    sudo python3 auto_remote_config.py --vnc_password <your_password> \
+        --zt_network_id <your_id> --proxy 127.0.0.1:7890
+
+Options:
+    --vnc_password: Password for VNC and noVNC access.
+    --zt_network_id: Optional ZeroTier network to join.
+    --proxy: Optional HTTP/HTTPS proxy for source downloads.
+
+Notes:
+    Run through sudo on Debian/Ubuntu with an active X11 desktop at :1.
+    Setup installs dependencies and restarts multivnc.service.
 """
 import os
 import sys
@@ -13,6 +28,11 @@ import subprocess
 import re
 import pwd
 import time
+import hashlib
+from pathlib import Path
+import shlex
+import shutil
+import tempfile
 
 # Define ANSI color codes for terminal output
 class Colors:
@@ -24,13 +44,14 @@ class Colors:
     RESET = '\033[0m'     # Reset to default terminal color
 
 def run_cmd(cmd, env=None, check=True):
-    """Executes shell commands, printing the command and its real-time output in color."""
-    print(f"{Colors.CMD}>>> Executing: {cmd}{Colors.RESET}")
+    """Run an argument list or shell command and stream its output in color."""
+    command_text = cmd if isinstance(cmd, str) else shlex.join(cmd)
+    print(f"{Colors.CMD}>>> Executing: {command_text}{Colors.RESET}")
     
     try:
         process = subprocess.Popen(
             cmd,
-            shell=True,
+            shell=isinstance(cmd, str),
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, 
@@ -122,18 +143,117 @@ def install_missing_packages(packages, apt_env):
         return
     run_cmd(f"apt-get install -y {' '.join(missing_packages)}", env=apt_env)
 
+class TigerVNCInstaller:
+    """Install the pinned TigerVNC server with the bundled key-event delay option."""
+
+    VERSION = "1.16.2"
+    SOURCE_SHA256 = "b107c0c8b8a962594281690366c24186e95c2ea4a169acbc0076aa62ed01f467"
+    CACHE_ROOT = Path("/var/cache/auto_remote_config")
+    BUILD_PACKAGES = [
+        "build-essential", "cmake", "pkg-config", "gettext", "patch", "curl",
+        "libx11-dev", "libxtst-dev", "libxdamage-dev", "libxfixes-dev",
+        "libxrandr-dev", "libxext-dev", "libjpeg-dev", "zlib1g-dev",
+        "libpixman-1-dev", "libpam0g-dev", "libgnutls28-dev", "nettle-dev",
+    ]
+
+    def __init__(self, user_info, apt_env):
+        """Record the target account and package-installation environment."""
+        self.user_info = user_info
+        self.apt_env = apt_env
+        self.binary = Path(user_info.pw_dir) / ".local/bin/x0vncserver-avnc"
+
+    def is_ready(self):
+        """Check whether the installed server has the pinned version and pacing patch."""
+        if not self.binary.is_file() or not os.access(self.binary, os.X_OK):
+            return False
+        version = subprocess.run([str(self.binary), "-version"], capture_output=True, text=True)
+        help_output = subprocess.run([str(self.binary), "-help"], capture_output=True, text=True)
+        return (version.returncode == 0
+                and f"version {self.VERSION}," in version.stdout + version.stderr
+                and "KeyEventDelay" in help_output.stdout + help_output.stderr)
+
+    def install(self):
+        """Build and install the patched server unless a matching binary already exists."""
+        if self.is_ready():
+            print(f"{Colors.OUT}[*] Patched TigerVNC {self.VERSION} already installed.{Colors.RESET}")
+            return str(self.binary)
+
+        install_missing_packages(self.BUILD_PACKAGES, self.apt_env)
+        cache = self.CACHE_ROOT / f"tigervnc-{self.VERSION}"
+        cache.mkdir(parents=True, exist_ok=True)
+        archive = cache / "source.tar.gz"
+        source = cache / f"tigervnc-{self.VERSION}"
+        build = cache / "build"
+        url = f"https://github.com/TigerVNC/tigervnc/archive/refs/tags/v{self.VERSION}.tar.gz"
+        run_cmd(["curl", "--fail", "--location", "--retry", "3", url, "--output", str(archive)])
+        with archive.open("rb") as source_file:
+            digest = hashlib.sha256(source_file.read()).hexdigest()
+        if digest != self.SOURCE_SHA256:
+            raise RuntimeError("TigerVNC source checksum mismatch")
+        if source.exists():
+            shutil.rmtree(source)
+        if build.exists():
+            shutil.rmtree(build)
+        run_cmd(["tar", "-xzf", str(archive), "-C", str(cache)])
+        patch = Path(__file__).resolve().with_name("tigervnc-key-event-delay.patch")
+        run_cmd(["patch", "--directory", str(source), "-p1", "--input", str(patch)])
+        run_cmd([
+            "cmake", "-S", str(source), "-B", str(build),
+            "-DCMAKE_BUILD_TYPE=Release", "-DBUILD_VIEWER=OFF",
+            "-DENABLE_H264=OFF", "-DENABLE_WAYLAND=OFF", "-DENABLE_GNUTLS=ON",
+        ])
+        run_cmd(["cmake", "--build", str(build), "--target", "x0vncserver",
+                 "--parallel", str(min(os.cpu_count() or 1, 4))])
+        self.binary.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=self.binary.parent, delete=False) as temporary:
+            temporary_path = Path(temporary.name)
+        try:
+            shutil.copyfile(build / "unix/x0vncserver/x0vncserver", temporary_path)
+            temporary_path.chmod(0o755)
+            os.chown(temporary_path, self.user_info.pw_uid, self.user_info.pw_gid)
+            os.replace(temporary_path, self.binary)
+        finally:
+            temporary_path.unlink(missing_ok=True)
+        if not self.is_ready():
+            raise RuntimeError("Built TigerVNC server failed its version/capability check")
+        return str(self.binary)
+
+
+def write_vnc_password(password, user_info):
+    """Write a TigerVNC password file readable by the service account."""
+    result = subprocess.run(["tigervncpasswd", "-f"], input=password.encode("utf-8") + b"\n",
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    password_file = Path("/etc/x11vnc.pass")
+    password_file.write_bytes(result.stdout)
+    os.chown(password_file, 0, user_info.pw_gid)
+    password_file.chmod(0o640)
+
+
+def render_launcher(monitors, vnc_binary, novnc_dir):
+    """Render supervised TigerVNC and noVNC commands for the detected monitors."""
+    template = Path(__file__).resolve().with_name("start_multivnc.sh.in").read_text()
+    commands = [
+        f"start_screen {index + 1} {5900 + index} {6080 + index} {shlex.quote(monitor['geometry'])}"
+        for index, monitor in enumerate(monitors)
+    ]
+    return (template.replace("@VNC_SERVER@", shlex.quote(vnc_binary))
+            .replace("@NOVNC_PROXY@", shlex.quote(f"{novnc_dir}/utils/novnc_proxy"))
+            .replace("@SCREEN_COMMANDS@", "\n".join(commands)))
+
+
 def main():
-    check_root()
-    
-    parser = argparse.ArgumentParser(description="Automate ZeroTier, SSH, x11vnc, and noVNC setup.")
+    """Install remote-access components and configure the per-screen system service."""
+    parser = argparse.ArgumentParser(description="Automate ZeroTier, SSH, TigerVNC, and noVNC setup.")
     # Made zt_network_id optional
     parser.add_argument("--zt_network_id", required=False, default="", help="Your ZeroTier Network ID (Leave empty to skip ZeroTier)")
     parser.add_argument("--vnc_password", required=True, help="Password for VNC access")
     # Added proxy argument
     parser.add_argument("--proxy", required=False, default="", help="Optional HTTP/HTTPS proxy (e.g., 127.0.0.1:7890) for git and curl")
     args = parser.parse_args()
+    check_root()
 
     real_user, user_home = get_real_user()
+    user_info = pwd.getpwnam(real_user)
     print(f"{Colors.INFO}[*] Detected target user: {real_user} (Home: {user_home}){Colors.RESET}")
 
     # Set up global proxy environment variables if provided
@@ -173,13 +293,12 @@ def main():
     run_cmd("systemctl enable --now ssh")
     print(f"{Colors.SUCCESS}[+] SSH service enabled and started.{Colors.RESET}")
 
-    # Step 3: Install x11vnc and set password
-    print(f"\n{Colors.INFO}[Step 3] Installing x11vnc and setting up password...{Colors.RESET}")
-    # x11vnc may call `netstat` when using `-auth guess`; install net-tools to avoid auth detection failures.
-    install_missing_packages(["x11vnc", "net-tools"], apt_env)
-    run_cmd(f"x11vnc -storepasswd {args.vnc_password} /etc/x11vnc.pass")
-    run_cmd("chmod 644 /etc/x11vnc.pass")
-    print(f"{Colors.SUCCESS}[+] x11vnc installed and password saved to /etc/x11vnc.pass.{Colors.RESET}")
+    # Step 3: Install the patched TigerVNC server and compatible password utility.
+    print(f"\n{Colors.INFO}[Step 3] Installing TigerVNC and setting up password...{Colors.RESET}")
+    install_missing_packages(["tigervnc-tools"], apt_env)
+    vnc_binary = TigerVNCInstaller(user_info, apt_env).install()
+    write_vnc_password(args.vnc_password, user_info)
+    print(f"{Colors.SUCCESS}[+] TigerVNC installed and password saved to /etc/x11vnc.pass.{Colors.RESET}")
 
     # Step 4: Install noVNC
     print(f"\n{Colors.INFO}[Step 4] Installing noVNC...{Colors.RESET}")
@@ -233,98 +352,29 @@ def main():
         print(f"{Colors.SUCCESS}    - Screen {i+1}: {m['name']} ({m['geometry']}){Colors.RESET}")
 
     # Step 6: Generate the launcher script
-    print(f"\n{Colors.INFO}[Step 6] Generating x11vnc + noVNC wrapper script...{Colors.RESET}")
+    print(f"\n{Colors.INFO}[Step 6] Generating TigerVNC + noVNC wrapper script...{Colors.RESET}")
     local_bin_dir = f"{user_home}/.local/bin"
     os.makedirs(local_bin_dir, exist_ok=True)
     run_cmd(f"chown -R {real_user}:{real_user} {user_home}/.local")
 
     script_path = f"{local_bin_dir}/start_multivnc.sh"
     
-    script_content = [
-        "#!/bin/bash",
-        "",
-        "# Cleanup function executed upon receiving exit signals",
-        "cleanup() {",
-        '    echo -e "\\n[!] Received Ctrl+C (SIGINT), shutting down all VNC and noVNC services..."'
-    ]
-    
-    kill_vars = []
-    for i in range(len(monitors)):
-        kill_vars.extend([f"$VNC{i+1}_PID", f"$NOVNC{i+1}_PID"])
-    
-    script_content.append(f"    kill {' '.join(kill_vars)} 2>/dev/null")
-    script_content.append('    echo "[✔] All services successfully closed."')
-    script_content.append("    exit 0")
-    script_content.append("}")
-    script_content.append("")
-    script_content.append("# Trap SIGINT (Ctrl+C) and SIGTERM signals")
-    script_content.append("trap cleanup SIGINT SIGTERM")
-    script_content.append("")
-    script_content.extend([
-        '# Prefer explicit XAUTHORITY; fallback to guess when not found.',
-        'DISPLAY_VALUE="${DISPLAY:-:1}"',
-        'XAUTH_FILE="${XAUTHORITY:-}"',
-        'if [ -z "$XAUTH_FILE" ] || [ ! -r "$XAUTH_FILE" ]; then',
-        '    for candidate in "/run/user/$(id -u)/gdm/Xauthority" "$HOME/.Xauthority"; do',
-        '        if [ -r "$candidate" ]; then',
-        '            XAUTH_FILE="$candidate"',
-        '            break',
-        '        fi',
-        '    done',
-        'fi',
-        'if [ -n "$XAUTH_FILE" ] && [ -r "$XAUTH_FILE" ]; then',
-        '    echo "[*] Using XAUTHORITY: $XAUTH_FILE"',
-        '    XAUTH_ARG="-auth $XAUTH_FILE"',
-        'else',
-        '    echo "[!] XAUTHORITY not found; fallback to -auth guess."',
-        '    XAUTH_ARG="-auth guess"',
-        'fi',
-        ""
-    ])
-
     base_vnc_port = 5900
     base_novnc_port = 6080
-
-    for i, monitor in enumerate(monitors):
-        vnc_port = base_vnc_port + i
-        novnc_port = base_novnc_port + i
-        geo = monitor["geometry"]
-        
-        script_content.extend([
-            f"echo '[*] Starting x11vnc for Screen {i+1} ({geo}) on port {vnc_port}...'",
-            f"/usr/bin/x11vnc -display \"${{DISPLAY_VALUE}}\" ${{XAUTH_ARG}} -nodpms -capslock -forever -loop -noxdamage -repeat -rfbauth /etc/x11vnc.pass -rfbport {vnc_port} -shared -clip {geo} &",
-            f"VNC{i+1}_PID=$!",
-            "",
-            f"echo '[*] Starting noVNC for Screen {i+1} ({novnc_port} -> {vnc_port})...'",
-            f"{novnc_dir}/utils/novnc_proxy --vnc localhost:{vnc_port} --listen {novnc_port} &",
-            f"NOVNC{i+1}_PID=$!",
-            ""
-        ])
-
-    script_content.extend([
-        'echo "======================================================"',
-        'echo "[✔] All VNC services are running in the background!"'
-    ])
-    for i in range(len(monitors)):
-        script_content.append(f'echo "Screen {i+1} Address: http://127.0.0.1:{base_novnc_port + i}/vnc.html"')
-    script_content.extend([
-        'echo "Keep this terminal open, press Ctrl+C to close all services."',
-        'echo "======================================================"',
-        'wait'
-    ])
+    script_content = render_launcher(monitors, vnc_binary, novnc_dir)
 
     with open(script_path, "w") as f:
-        f.write("\n".join(script_content) + "\n")
+        f.write(script_content)
     
     os.chmod(script_path, 0o755)
     run_cmd(f"chown {real_user}:{real_user} {script_path}")
     print(f"{Colors.SUCCESS}[+] Script generated at {script_path}{Colors.RESET}")
 
-    # Step 7: Create Systemd Service (Updated DISPLAY to :1, removed XAUTHORITY)
+    # Step 7: Create the systemd service for the current X11 display.
     print(f"\n{Colors.INFO}[Step 7] Configuring systemd service for auto-start...{Colors.RESET}")
     service_path = "/etc/systemd/system/multivnc.service"
     service_content = f"""[Unit]
-Description=Multi-Screen x11vnc and noVNC Service
+Description=Multi-Screen TigerVNC and noVNC Service
 After=network.target graphical.target
 
 [Service]
@@ -343,7 +393,8 @@ WantedBy=graphical.target
         f.write(service_content)
 
     run_cmd("systemctl daemon-reload")
-    run_cmd("systemctl enable --now multivnc.service")
+    run_cmd("systemctl enable multivnc.service")
+    run_cmd("systemctl restart multivnc.service")
     print(f"{Colors.SUCCESS}[+] systemd service 'multivnc.service' enabled and started.{Colors.RESET}")
 
     # Step 8: Get Connection IP
