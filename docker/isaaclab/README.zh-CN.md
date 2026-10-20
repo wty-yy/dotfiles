@@ -18,18 +18,18 @@
   - Python `3.12`
   - `torch==2.11.0`
   - `torchvision==0.26.0`
-  - `isaaclab[isaacsim,all]==3.0.0rc1`（Isaac Lab 3.0 Early Access）
+  - `isaaclab[isaacsim,all]==3.0.0`（Isaac Lab 3.0）
 - 系统运行时包：
   - IsaacSim：`libgomp1`、`libglu1`
   - 渲染与调试：`mesa-utils`、`vulkan-tools`、`x11-apps`
 
 ## 构建
 
-构建配置面向 Isaac Lab 3.0 Early Access 及后续版本。
+构建配置面向 Isaac Lab 3.0 及后续版本。
 
 ```bash
 cd docker
-docker build -t wtyyy/isaaclab:3.0-ea isaaclab
+docker build -t wtyyy/isaaclab:3.0.0 isaaclab
 ```
 
 ## 运行
@@ -63,7 +63,7 @@ docker run -it --name ${USER}-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:3.0-ea zsh
+  wtyyy/isaaclab:3.0.0 zsh
 ```
 
 - X11：
@@ -125,7 +125,7 @@ docker run -it --name user-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v /home/user/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v /home/user/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:3.0-ea zsh
+  wtyyy/isaaclab:3.0.0 zsh
 ```
 
 ## GitHub Actions
@@ -137,7 +137,7 @@ docker run -it --name user-isaaclab \
   - 每个条目集中记录镜像标签、Isaac Lab 软件包版本、Python、PyTorch、torchvision、CUDA wheel 通道、预发布版本策略和可选的发行版 uv overrides 地址
   - 增删一个 JSON 对象即可调整矩阵构建的版本
 - 当前输出镜像：
-  - `wtyyy/isaaclab:3.0-ea`
+  - `wtyyy/isaaclab:3.0.0`
 - 手动发布：
   - 触发 `workflow_dispatch`
   - `isaaclab_version` 保持为 `all` 时构建全部已配置版本

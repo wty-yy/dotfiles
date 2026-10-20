@@ -18,18 +18,18 @@ This image extends `wtyyy/ubuntu:24.04` and installs the Isaac Lab environment i
   - Python `3.12`
   - `torch==2.11.0`
   - `torchvision==0.26.0`
-  - `isaaclab[isaacsim,all]==3.0.0rc1` (Isaac Lab 3.0 Early Access)
+  - `isaaclab[isaacsim,all]==3.0.0` (Isaac Lab 3.0)
 - system runtime packages:
   - IsaacSim: `libgomp1`, `libglu1`
   - Render & DEBUG: `mesa-utils`, `vulkan-tools`, `x11-apps`
 
 ## Build
 
-The build configuration targets Isaac Lab 3.0 Early Access and later releases.
+The build configuration targets Isaac Lab 3.0 and later releases.
 
 ```bash
 cd docker
-docker build -t wtyyy/isaaclab:3.0-ea isaaclab
+docker build -t wtyyy/isaaclab:3.0.0 isaaclab
 ```
 
 ## Run
@@ -62,7 +62,7 @@ docker run -it --name ${USER}-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v ${HOME}/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v ${HOME}/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:3.0-ea zsh
+  wtyyy/isaaclab:3.0.0 zsh
 ```
 
 - X11:
@@ -124,7 +124,7 @@ docker run -it --name user-isaaclab \
   -v /path/to/Coding:/home/user/Coding \
   -v /home/user/isaaclab_docker/.cache/ov:/home/user/.cache/ov \
   -v /home/user/isaaclab_docker/.nvidia-omniverse:/home/user/.nvidia-omniverse \
-  wtyyy/isaaclab:3.0-ea zsh
+  wtyyy/isaaclab:3.0.0 zsh
 ```
 
 ## GitHub Actions
@@ -136,7 +136,7 @@ This repo includes dockerfile auto-building workflow [`.github/workflows/docker-
   - each entry keeps the image tag, Isaac Lab package version, Python, PyTorch, torchvision, CUDA wheel channel, prerelease policy, and optional release uv overrides URL together
   - add or remove one JSON object to change the versions built by the matrix
 - Current output images:
-  - `wtyyy/isaaclab:3.0-ea`
+  - `wtyyy/isaaclab:3.0.0`
 - Manual release:
   - trigger `workflow_dispatch`
   - leave `isaaclab_version` as `all` to build every configured version
