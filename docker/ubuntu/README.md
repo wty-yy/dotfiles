@@ -14,24 +14,23 @@ English | [中文](./README.zh-CN.md)
 Minimal Ubuntu Docker image (supports `24.04` and `22.04`) with:
 
 - `zsh` with `powerlevel10k` and common plugins
-- `tmux` with the repo's `.tmux` configuration
-- `vim` with `gruvbox`
+- `tmux` with the repository's `.tmux` configuration and mouse support enabled
+- `vim` with the repository's `vimrc` and plugins, using `gruvbox`
 - timezone with `Asia/Shanghai`
 - running by user specified `DEFAULT_UID` and `DEFAULT_GID`, which **make created files in container still owned by the host user**, especially when mounting volumes
 
 ## Build
 
-From this directory (default base is `ubuntu:24.04`):
+Build from the repository root. The repository root is the build context so the image uses the repository's `vimrc`, `vim/`, and `.tmux/` files.
 
 ```bash
-cd docker
-docker build -t wtyyy/ubuntu:24.04 ubuntu
+docker build -f docker/ubuntu/Dockerfile -t wtyyy/ubuntu:24.04 .
 ```
 
-Build for Ubuntu 22.04:
+Build Ubuntu 22.04:
 
 ```bash
-docker build --build-arg UBUNTU_TAG=22.04 -t wtyyy/ubuntu:22.04 ubuntu
+docker build -f docker/ubuntu/Dockerfile --build-arg UBUNTU_TAG=22.04 -t wtyyy/ubuntu:22.04 .
 ```
 
 ## Run
@@ -112,7 +111,7 @@ docker exec -it ${USER}-ubuntu zsh
 
 This repo includes dockerfile auto-building workflow [`.github/workflows/docker-ubuntu.yml`](../../.github/workflows/docker-ubuntu.yml) that uploads to [Docker Hub - wtyyy/ubuntu](https://hub.docker.com/repository/docker/wtyyy/ubuntu).
 
-- Trigger: push to `main` or `master` with changes under `docker/ubuntu/**`
+- Trigger: push to `main` or `master` with changes under `docker/ubuntu/**`, `.tmux/**`, `vim/**`, `vimrc`, or `.dockerignore`
 - Output images:
   - `wtyyy/ubuntu:24.04`
   - `wtyyy/ubuntu:22.04`

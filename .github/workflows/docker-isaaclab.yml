@@ -6,8 +6,12 @@ on:
       - master
       - main
     paths:
+      - '.dockerignore'
+      - '.tmux/**'
       - 'docker/isaaclab/**'
       - 'docker/ubuntu/**'
+      - 'vim/**'
+      - 'vimrc'
       - '.github/workflows/docker-isaaclab.yml'
       - '.github/workflows/docker-ubuntu.yml'
   workflow_dispatch:
@@ -101,7 +105,7 @@ jobs:
       - name: Build and push base Ubuntu image
         uses: docker/build-push-action@v6
         with:
-          context: ./docker/ubuntu
+          context: .
           file: ./docker/ubuntu/Dockerfile
           push: true
           build-args: |

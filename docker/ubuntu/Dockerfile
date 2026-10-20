@@ -77,17 +77,17 @@ RUN set -eux; \
         fi; \
     done
 
-# User configurations
-COPY --chown=${INITIAL_UID}:${INITIAL_GID} overlay/.zshrc ${DEFAULT_HOME}/.zshrc
-COPY --chown=${INITIAL_UID}:${INITIAL_GID} overlay/.p10k.zsh ${DEFAULT_HOME}/.p10k.zsh
-COPY --chown=${INITIAL_UID}:${INITIAL_GID} overlay/.tmux.conf ${DEFAULT_HOME}/.tmux.conf
-COPY --chown=${INITIAL_UID}:${INITIAL_GID} overlay/.tmux.conf.local ${DEFAULT_HOME}/.tmux.conf.local
-COPY --chown=${INITIAL_UID}:${INITIAL_GID} overlay/.vimrc ${DEFAULT_HOME}/.vimrc
-COPY --chown=${INITIAL_UID}:${INITIAL_GID} overlay/gruvbox.vim ${DEFAULT_HOME}/.vim/colors/gruvbox.vim
+# User configurations (the repository root is the build context)
+COPY --chown=${INITIAL_UID}:${INITIAL_GID} docker/ubuntu/overlay/.zshrc ${DEFAULT_HOME}/.zshrc
+COPY --chown=${INITIAL_UID}:${INITIAL_GID} docker/ubuntu/overlay/.p10k.zsh ${DEFAULT_HOME}/.p10k.zsh
+COPY --chown=${INITIAL_UID}:${INITIAL_GID} .tmux/.tmux.conf ${DEFAULT_HOME}/.tmux.conf
+COPY --chown=${INITIAL_UID}:${INITIAL_GID} .tmux/.tmux.conf.local ${DEFAULT_HOME}/.tmux.conf.local
+COPY --chown=${INITIAL_UID}:${INITIAL_GID} vimrc ${DEFAULT_HOME}/.vimrc
+COPY --chown=${INITIAL_UID}:${INITIAL_GID} vim ${DEFAULT_HOME}/.vim
 
 # Install and entrypoint script
-COPY --chmod=755 overlay/setup-docker.sh /tmp/setup-docker.sh
-COPY --chmod=755 overlay/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --chmod=755 docker/ubuntu/overlay/setup-docker.sh /tmp/setup-docker.sh
+COPY --chmod=755 docker/ubuntu/overlay/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN set -eux; \
     /tmp/setup-docker.sh "${DEFAULT_HOME}"; \

@@ -6,7 +6,11 @@ on:
       - master
       - main
     paths:
+      - '.dockerignore'
+      - '.tmux/**'
       - 'docker/ubuntu/**'
+      - 'vim/**'
+      - 'vimrc'
       - '.github/workflows/docker-ubuntu.yml'
   workflow_dispatch:
 
@@ -34,7 +38,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: ./docker/ubuntu
+          context: .
           file: ./docker/ubuntu/Dockerfile
           push: true
           build-args: |

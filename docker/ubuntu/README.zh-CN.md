@@ -14,24 +14,23 @@
 精简版 Ubuntu Docker 镜像，支持 `24.04` 和 `22.04`，包含：
 
 - `zsh`，预装 `powerlevel10k` 和常用插件
-- `tmux`，使用仓库里的 `.tmux` 配置
-- `vim`，使用 `gruvbox`
+- `tmux`，使用仓库的 `.tmux` 配置，并默认启用鼠标支持
+- `vim`，使用仓库的 `vimrc` 和插件，配色为 `gruvbox`
 - 时区为 `Asia/Shanghai`
 - 支持通过 `DEFAULT_UID` 和 `DEFAULT_GID` 指定运行用户，尤其在挂载宿主机目录时，**在容器中新建文件依旧保持宿主机用户权限**
 
 ## 构建
 
-在当前目录的上一级 `docker` 下执行，默认基础镜像为 `ubuntu:24.04`：
+在仓库根目录执行。构建上下文为仓库根目录，镜像会使用仓库中的 `vimrc`、`vim/` 和 `.tmux/` 配置。
 
 ```bash
-cd docker
-docker build -t wtyyy/ubuntu:24.04 ubuntu
+docker build -f docker/ubuntu/Dockerfile -t wtyyy/ubuntu:24.04 .
 ```
 
 构建 Ubuntu 22.04：
 
 ```bash
-docker build --build-arg UBUNTU_TAG=22.04 -t wtyyy/ubuntu:22.04 ubuntu
+docker build -f docker/ubuntu/Dockerfile --build-arg UBUNTU_TAG=22.04 -t wtyyy/ubuntu:22.04 .
 ```
 
 ## 运行
@@ -113,7 +112,7 @@ docker exec -it ${USER}-ubuntu zsh
 
 该仓库包含 Dockerfile 自动构建工作流 [`.github/workflows/docker-ubuntu.yml`](../../.github/workflows/docker-ubuntu.yml) 上传到 [Docker Hub - wtyyy/ubuntu](https://hub.docker.com/repository/docker/wtyyy/ubuntu)。
 
-- 触发条件：推送到 `main` 或 `master`，且改动路径包含 `docker/ubuntu/**`
+- 触发条件：推送到 `main` 或 `master`，且改动路径包含 `docker/ubuntu/**`、`.tmux/**`、`vim/**`、`vimrc` 或 `.dockerignore`
 - 输出镜像：
   - `wtyyy/ubuntu:24.04`
   - `wtyyy/ubuntu:22.04`

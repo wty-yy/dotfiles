@@ -1,5 +1,6 @@
 ## CHANGELOG
 
+- 2026.10.20: 更新 [docker/ubuntu](./docker/ubuntu/)，构建上下文改为仓库根目录，镜像直接使用仓库的 `vimrc`、`vim/` 和 `.tmux/` 配置，并默认启用 tmux 鼠标支持
 - 2026.10.20: 更新 [docker/isaaclab](./docker/isaaclab/)，默认构建版本由 Isaac Lab `3.0.0rc1`（3.0 Early Access）升级为正式版 `3.0.0`，镜像标签改为 `3.0.0`，并切换到 `v3.0.0` 的 uv overrides
 - 2026.10.14: 新增 [scripts/kitty/install-macos.sh](./scripts/kitty/install-macos.sh)，支持 macOS 安装和更新 Kitty、配置命令行 PATH、安装配置与字体、覆盖前备份及 `--dry-run` 预览
 - 2026.10.14: 更新 [scripts/auto_remote_config](./scripts/auto_remote_config/)，改用带 `KeyEventDelay` 补丁的 TigerVNC `1.16.2`，新增多屏服务启动模板、进程自动重试及中英文使用说明
