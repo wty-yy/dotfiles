@@ -1,0 +1,7 @@
+# Isaac Sim 6.2 runtime pins that Isaac Lab's uv-overrides.txt relaxes.
+# Keep these versions aligned with the Isaac Sim metadata and numba runtime checks.
+numpy==2.3.1
+packaging==26.0
+newton-usd-schemas==0.5.0
+fsspec==2026.6.0
+urllib3==2.8.0

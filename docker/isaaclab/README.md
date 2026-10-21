@@ -16,12 +16,15 @@ This image extends `wtyyy/ubuntu:24.04` and installs the Isaac Lab environment i
 - `uv` and uv venv at `/home/user/isaaclab`
 - default Python packages:
   - Python `3.12`
+  - `numpy==2.3.1`
   - `torch==2.11.0`
   - `torchvision==0.26.0`
   - `isaaclab[isaacsim,all]==3.0.0` (Isaac Lab 3.0)
 - system runtime packages:
   - IsaacSim: `libgomp1`, `libglu1`
   - Render & DEBUG: `mesa-utils`, `vulkan-tools`, `x11-apps`
+
+Isaac Sim 6.2 runtime pins are stored in [`uv-constraints.txt`](./uv-constraints.txt). They prevent the upstream uv overrides from selecting incompatible versions such as `numpy==2.5.4`.
 
 ## Build
 

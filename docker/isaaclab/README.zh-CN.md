@@ -16,12 +16,15 @@
 - `uv` 以及位于 `/home/user/isaaclab` 的 uv venv
 - 默认 Python 与软件包：
   - Python `3.12`
+  - `numpy==2.3.1`
   - `torch==2.11.0`
   - `torchvision==0.26.0`
   - `isaaclab[isaacsim,all]==3.0.0`（Isaac Lab 3.0）
 - 系统运行时包：
   - IsaacSim：`libgomp1`、`libglu1`
   - 渲染与调试：`mesa-utils`、`vulkan-tools`、`x11-apps`
+
+Isaac Sim 6.2 的运行时固定版本记录在 [`uv-constraints.txt`](./uv-constraints.txt)，用于避免上游 uv overrides 选择 `numpy==2.5.4` 等不兼容版本。
 
 ## 构建
 
