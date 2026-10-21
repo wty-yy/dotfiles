@@ -33,7 +33,7 @@ WORKDIR ${DEFAULT_HOME}
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
 
 # Restore Isaac Sim 6.2 runtime pins that the published uv overrides relax.
-COPY --chown=${INITIAL_UID}:${INITIAL_GID} uv-constraints.txt /tmp/uv-constraints.txt
+COPY --chown=${INITIAL_UID}:${INITIAL_GID} uv-constraints.txt ${DEFAULT_HOME}/.uv-constraints.txt
 
 # Create uv env and install IsaacLab with its target PyTorch backend.
 # Isaac Sim's published metadata can request a different default PyTorch wheel.
@@ -52,13 +52,13 @@ RUN set -eux; \
     uv pip install --no-cache-dir \
         --torch-backend "${PYTORCH_CUDA}" \
         --overrides "${OVERRIDE_FILE}" \
-        --constraints /tmp/uv-constraints.txt \
+        --constraints "${DEFAULT_HOME}/.uv-constraints.txt" \
         --prerelease="${UV_PRERELEASE}" \
         --index-strategy unsafe-best-match \
         "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" \
         --extra-index-url https://pypi.nvidia.com; \
     "${UV_ENV_NAME}/bin/python" -c 'import numpy, numba; assert numpy.__version__ == "2.3.1", numpy.__version__'; \
-    rm -f "${OVERRIDE_FILE}" /tmp/uv-constraints.txt; \
+    rm -f "${OVERRIDE_FILE}" "${DEFAULT_HOME}/.uv-constraints.txt"; \
     rm -rf "${DEFAULT_HOME}/.cache"; \
     chmod -R g+rwX "${DEFAULT_HOME}/${UV_ENV_NAME}" "${DEFAULT_HOME}/.local"
 
