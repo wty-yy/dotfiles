@@ -33,7 +33,7 @@ WORKDIR ${DEFAULT_HOME}
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
 
 # Restore Isaac Sim 6.2 runtime pins that the published uv overrides relax.
-COPY uv-constraints.txt /tmp/uv-constraints.txt
+COPY --chown=${INITIAL_UID}:${INITIAL_GID} uv-constraints.txt /tmp/uv-constraints.txt
 
 # Create uv env and install IsaacLab with its target PyTorch backend.
 # Isaac Sim's published metadata can request a different default PyTorch wheel.
