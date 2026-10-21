@@ -1,5 +1,6 @@
 ## CHANGELOG
 
+- 2026.10.21: 更新 [docker/isaaclab](./docker/isaaclab/)，移除 `ovphysx`、`ovrtx`、`ovstage`，消除 `ovphysx` 与 Isaac Sim 的 `packaging` 版本冲突，保留 IsaacSim PhysX 与 Newton
 - 2026.10.21: 修复 [docker/isaaclab](./docker/isaaclab/)，新增 `uv-constraints.txt` 固定 `numpy==2.3.1`、`packaging==26.0` 等 Isaac Sim 6.2 运行时依赖，避免 uv overrides 选择不兼容版本导致 numba/IsaacSim 无法导入
 - 2026.10.20: 更新 [docker/ubuntu](./docker/ubuntu/)，构建上下文改为仓库根目录，镜像直接使用仓库的 `vimrc`、`vim/` 和 `.tmux/` 配置，并默认启用 tmux 鼠标支持
 - 2026.10.20: 更新 [docker/isaaclab](./docker/isaaclab/)，默认构建版本由 Isaac Lab `3.0.0rc1`（3.0 Early Access）升级为正式版 `3.0.0`，镜像标签改为 `3.0.0`，并切换到 `v3.0.0` 的 uv overrides

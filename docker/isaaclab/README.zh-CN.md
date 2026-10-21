@@ -24,7 +24,7 @@
   - IsaacSim：`libgomp1`、`libglu1`
   - 渲染与调试：`mesa-utils`、`vulkan-tools`、`x11-apps`
 
-Isaac Sim 6.2 的运行时固定版本记录在 [`uv-constraints.txt`](./uv-constraints.txt)，用于避免上游 uv overrides 选择 `numpy==2.5.4` 等不兼容版本。
+Isaac Sim 6.2 的运行时固定版本记录在 [`uv-constraints.txt`](./uv-constraints.txt)，用于避免上游 uv overrides 选择 `numpy==2.5.4` 等不兼容版本。镜像不安装 `ovphysx`、`ovrtx` 和 `ovstage`，因为 `ovphysx` 要求 `packaging<24`，与 Isaac Sim 的 `packaging<=26.0` 冲突；IsaacSim PhysX 和 Newton 仍可正常使用。
 
 ## 构建
 

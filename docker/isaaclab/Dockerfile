@@ -57,6 +57,10 @@ RUN set -eux; \
         --index-strategy unsafe-best-match \
         "isaaclab[isaacsim,all]==${ISAACLAB_VERSION}" \
         --extra-index-url https://pypi.nvidia.com; \
+    # ovphysx pins packaging<24, which conflicts with IsaacSim's packaging<=26.0.
+    # IsaacSim PhysX and Newton remain available without the OV backend.
+    uv pip uninstall ovphysx ovrtx ovstage; \
+    "${UV_ENV_NAME}/bin/python" -c 'import importlib.util; assert all(importlib.util.find_spec(p) is None for p in ("ovphysx", "ovrtx", "ovstage"))'; \
     "${UV_ENV_NAME}/bin/python" -c 'import numpy, numba; assert numpy.__version__ == "2.3.1", numpy.__version__'; \
     rm -f "${OVERRIDE_FILE}" "${DEFAULT_HOME}/.uv-constraints.txt"; \
     rm -rf "${DEFAULT_HOME}/.cache"; \

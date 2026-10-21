@@ -24,7 +24,7 @@ This image extends `wtyyy/ubuntu:24.04` and installs the Isaac Lab environment i
   - IsaacSim: `libgomp1`, `libglu1`
   - Render & DEBUG: `mesa-utils`, `vulkan-tools`, `x11-apps`
 
-Isaac Sim 6.2 runtime pins are stored in [`uv-constraints.txt`](./uv-constraints.txt). They prevent the upstream uv overrides from selecting incompatible versions such as `numpy==2.5.4`.
+Isaac Sim 6.2 runtime pins are stored in [`uv-constraints.txt`](./uv-constraints.txt). They prevent the upstream uv overrides from selecting incompatible versions such as `numpy==2.5.4`. The `ovphysx`, `ovrtx`, and `ovstage` packages are omitted because `ovphysx` requires `packaging<24`, which conflicts with Isaac Sim's `packaging<=26.0`; IsaacSim PhysX and Newton remain available.
 
 ## Build
 
